@@ -1,0 +1,26 @@
+---
+interface Props {
+  color?: string;
+}
+
+const { color } = Astro.props;
+---
+
+<div
+  class:list={[
+    "full-bleed py-8",
+    !color && "bg-zinc-200 dark:bg-zinc-800",
+    color && "text-white",
+  ]}
+  style={color ? { backgroundColor: color } : undefined}
+>
+  <div
+    class:list={[
+      "mx-[var(--actual-inline-margin)] [&>:first-child]:mt-0 [&>:last-child]:mb-0",
+      color &&
+        "[&_a]:text-blue-200 [&_a]:hover:text-white [&_strong]:text-white",
+    ]}
+  >
+    <slot />
+  </div>
+</div>

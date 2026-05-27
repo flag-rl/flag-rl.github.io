@@ -1,0 +1,866 @@
+---
+title: |
+  FLAG: Flow Policy MaxEnt-RL by
+  Latent Augmented Guidance
+authors:
+  - name: Sungha Kim
+    url: https://shkim37.github.io/
+    notes: ["*", "1"]
+  - name: Gawon Lee
+    notes: ["*", "1"]
+  - name: Jusuk Lee
+    url: https://ju-suk.github.io/
+    notes: ["1"]
+  - name: Jonghae Park
+    url: https://jonghaepark.github.io/
+    notes: ["1"]
+  - name: H. Jin Kim
+    url: https://larr.snu.ac.kr/
+    notes: ["1"]
+  - name: Daesol Cho
+    url: https://dscho1234.github.io/
+    notes: ["2"]
+# conference: Conference Name
+notes:
+  - - symbol: "1"
+      text: "Lab for Autonomous Robotics Research, Seoul National University"
+      size: lg
+    - symbol: "2"
+      text: Georgia Institute of Technology
+      size: lg
+  - - symbol: "*"
+      text: Equal contribution
+links:
+  - name: Paper
+    url: https://github.com/RomanHauksson/academic-project-astro-template
+    icon: ri:file-pdf-2-line
+  - name: Code
+    url: https://github.com/RomanHauksson/academic-project-astro-template
+    icon: ri:github-line
+  - name: arXiv
+    url: https://github.com/RomanHauksson/academic-project-astro-template
+    icon: academicons:arxiv
+
+# The color theme of the page. Defaults to "device" (the preference set in the user's brower or operating system). Setting this to "light" or "dark" will override the user's preference. This is useful if your figures only look good in one theme.
+theme: light
+
+# This is the icon that appears in the user's browser tab. To customize, change the favicon.svg file in /public/, or add your own file to /public/ and change the filename here.
+favicon: flag2.svg
+
+# These keys are optional. If a link to your project page is in a Google search result, text message, or social media post, it will often appear as a "link preview card" based on its title, description, favicon, and thumbnail. After you publish your page, you can double check that these previews look right using [this tool](https://linkpreview.xyz/)
+description: Simple project page template for your research paper, built with Astro and Tailwind
+# thumbnail: screenshot-light.png
+---
+
+import Video from "./components/Video.astro";
+import HighlightedSection from "./components/HighlightedSection.astro";
+import ColorBox from "./components/ColorBox.astro";
+import SmallCaps from "./components/SmallCaps.astro";
+import Figure from "./components/Figure.astro";
+import Picture from "./components/Picture.astro";
+import ModelViewer from "./components/ModelViewer.astro"
+import TwoColumns from "./components/TwoColumns.astro";
+import YouTubeVideo from "./components/YouTubeVideo.astro";
+import Carousel from "./components/Carousel.astro";
+import CarouselSlide from "./components/CarouselSlide.astro";
+import Wide from "./components/Wide.astro";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/starwind/tabs";
+import { Comparison } from "./components/Comparison.tsx";
+import QCard from "./components/QCard.astro";
+import ResultQCard from "./components/ResultQCard.astro";
+import ResultZoomImage from "./components/ResultZoomImage.astro";
+import ResultZoomHint from "./components/ResultZoomHint.astro";
+import MethodHint from "./components/MethodHint.astro";
+import IdeaTabs from "./components/IdeaTabs.astro";
+import EqBox from "./components/EqBox.astro";
+import ProofRoadmap from "./components/ProofRoadmap.astro";
+
+import outside from "./assets/outside.mp4";
+import dogsDiffc from "./assets/dogs-diffc.png"
+import dogsTrue from "./assets/dogs-true.png"
+import dogsMsillm from "@/assets/dogs-msillm.jpg"
+import multigoalenv from "./assets/multigoal_new.png"
+import highdimenv from "./assets/new_5_1_scatter.png"
+import localizedEM from "./assets/localized_EM_algorithm.png"
+import mpoProofRoadmap from "./assets/MPO_proof_hq.png"
+import sacProofRoadmap from "./assets/SAC_proof_hq.png"
+import q1Figure3Thumb from "./assets/q1_figure3_thumb.png"
+import q1Figure3Detail from "./assets/q1_figure3_detail.png"
+import q1Figure4WithoutCrossQThumb from "./assets/q1_figure4_without_crossq_thumb.png"
+import q1Figure4WithoutCrossQDetail from "./assets/q1_figure4_without_crossq_detail.png"
+import q1Table1Thumb from "./assets/q1_table1_thumb.png"
+import q1Table1Detail from "./assets/q1_table1_detail.png"
+import q1Figure9P1Thumb from "./assets/q1_figure9_p1_thumb.png"
+import q1Figure9P1Detail from "./assets/q1_figure9_p1_detail.png"
+import q1Figure10P32Thumb from "./assets/q1_figure10_p32_thumb.png"
+import q1Figure10P32Detail from "./assets/q1_figure10_p32_detail.png"
+import q2Table2Thumb from "./assets/q2_table2_thumb.png"
+import q2Table2Detail from "./assets/q2_table2_detail.png"
+import q2Figure11Thumb from "./assets/q2_figure11_thumb.png"
+import q2Figure11Detail from "./assets/q2_figure11_detail.png"
+import q2Table8WithoutCrossQThumb from "./assets/q2_table8_without_crossq_thumb.png"
+import q2Table8WithoutCrossQDetail from "./assets/q2_table8_without_crossq_detail.png"
+
+{/* <Video src={outside} /> */}
+
+<HighlightedSection>
+
+## TL;DR
+
+**FLAG** trains expressive flow policies for MaxEnt-RL through supervised target matching, rather than direct gradient-based policy optimization through the flow.
+ It replaces fragile global importance sampling with latent-conditioned local importance sampling, enabling scalable high-dimensional control and state-of-the-art performance.
+
+
+</HighlightedSection>
+
+## From Global to Local Importance Sampling
+
+Prior methods train diffusion- and flow-based policies by matching a target action distribution,
+such as the unnormalized MaxEnt target $\exp(Q(s, a) / \alpha)$. Since this target cannot be
+sampled from directly, they use **importance sampling (IS)**: sample actions from a proposal policy,
+reweight them toward the target, and perform weighted score or flow matching.
+
+The limitation is that IS can only reweight actions that were already sampled. When the
+proposal-target discrepancy is large, especially in high-dimensional control, the proposal rarely
+samples target-relevant actions. This yields sparse supervision and lead to failure mode.
+
+**Our key insight** is to change where IS is performed. Prior methods use **Global IS**, which reweights samples over the full action space. 
+FLAG uses **Local IS**: it conditions both the proposal and target on the same flow latent variable $z$,
+so reweighting happens inside a shared local region.
+
+<ColorBox color="#0F766E" title="Local IS turns global target matching into local target matching">
+
+<div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+  <div class="rounded-md border border-zinc-400/60 bg-white/70 p-3">
+    <div class="mb-2 text-xs font-bold tracking-wider text-zinc-600 uppercase">Global IS · prior work</div>
+    <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-sm">
+      <div class="font-semibold text-zinc-500">Region</div>
+      <div>Full action space</div>
+      <div class="font-semibold text-zinc-500">Samples</div>
+      <div>Useful ones are rarely drawn</div>
+      <div class="font-semibold text-zinc-500">Supervision</div>
+      <div><strong>Weak</strong></div>
+    </div>
+  </div>
+  <div class="rounded-md border-2 border-teal-700/60 bg-teal-100/70 p-3">
+    <div class="mb-2 text-xs font-bold tracking-wider text-teal-800 uppercase">Local IS · FLAG (ours)</div>
+    <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-sm">
+      <div class="font-semibold text-teal-700">Region</div>
+      <div>Local (latent-conditioned)</div>
+      <div class="font-semibold text-teal-700">Samples</div>
+      <div>Even a few stay informative</div>
+      <div class="font-semibold text-teal-700">Supervision</div>
+      <div><strong>Dense</strong></div>
+    </div>
+  </div>
+</div>
+
+</ColorBox>
+
+We first illustrate this effect in a controlled multi-goal task then show the same pattern in high-dimensional continuous control tasks in the Result section.
+
+{/* ### Multi-goal Environment
+
+<Wide>
+  <Figure>
+  <Picture slot="figure" src={multigoalenv} alt="Comparison of global and local importance sampling in a multi-goal environment" />
+  <Fragment slot="caption">This didactic task illustrates what happens when the IS budget is very small, as in high-dimensional action spaces. When $N \le 8$, global-IS baselines fail to capture the target modes, while FLAG captures the optimal multi-modal behavior even with $N = 2$ samples.</Fragment>
+  </Figure>
+</Wide>
+
+### High-dimensional Continuous Control Environment
+<Wide>
+  <Figure>
+  <Picture slot="figure" src={highdimenv} alt="Comparison of global and local importance sampling in a high-dimensional continuous control environment" />
+  <Fragment slot="caption">In real high-dimensional control tasks, global-IS methods often rely on batch action sampling, drawing many candidate actions to compensate for poor proposal-target overlap. Even with this extra sampling, they remain less efficient and lower-performing than FLAG.</Fragment>
+  </Figure>
+</Wide> */}
+
+### Multi-goal Environment (Didactic Experiment)
+
+<Figure>
+  <Picture slot="figure" src={multigoalenv} alt="Comparison of global and local importance sampling in a multi-goal environment" />
+  <Fragment slot="caption">The multi-goal task isolates the small-sample regime: global-IS baselines fail when $N \le 8$, while FLAG recovers the optimal multi-modal behavior with only $N = 2$ samples.</Fragment>
+</Figure>
+
+{/* ### High-dimensional Continuous Control Environment
+
+<Figure>
+  <Picture slot="figure" src={highdimenv} alt="Comparison of global and local importance sampling in a high-dimensional continuous control environment" />
+  <Fragment slot="caption">The same issue appears in high-dimensional control. Global-IS methods compensate with batch action sampling, but even with many candidates they remain less efficient and lower-performing than FLAG.</Fragment>
+</Figure> */}
+
+{/* ### How to Make Local IS Framework Work?
+
+<ColorBox color="#0F766E">
+  <Fragment slot="title">
+    **FLAG realizes local IS through EM on the $z$-MDP.**
+  </Fragment>
+
+The $z$-MDP augments the original MDP with a latent variable while preserving marginal and
+$Q$-function consistency. On this augmented MDP, we define a tractable proxy MaxEnt-RL objective
+whose EM-style optimization induces a localized proposal-target pair conditioned on $z$. FLAG
+instantiates this procedure, enabling the local IS within the localized region of the action space
+and making MaxEnt-RL scalable.
+
+</ColorBox> */}
+
+## Method
+
+<MethodHint />
+
+<QCard number="Q1" title="How do we construct local IS, and is it consistent with the original MDP?">
+
+<Fragment slot="challenge">
+For local IS to be principled — not just a trick — two conditions must hold:
+
+- **Localization.** The proposal and target distributions must share a *region* indexed by a latent $z$.
+- **Consistency.** Optimizing inside that local region must be the *same* optimization problem as optimizing the RL objective in the original MDP.
+
+Without Consistency, local IS optimizes the wrong objective and any gains are illusory.
+</Fragment>
+
+<Fragment slot="solution">
+<IdeaTabs labels={["Policy Parameterization", "Latent-Augmented MDP", "Consistency"]}>
+  <Fragment slot="tab-0">
+    <Figure>
+      <Picture slot="figure" src="../assets/policy_parameterization.pdf" alt="Flow map transports latent z to multi-modal anchor actions, around which local Gaussians form the local policy and marginalize into the global policy" />
+      <Fragment slot="caption">The deterministic flow map $T_\theta(s, z)$ transports a latent prior $z \sim p_z$ to multi-modal anchor actions. Wrapping each anchor with a small Gaussian gives a tractable *local* density $\hat\pi(a \mid s, z)$.</Fragment>
+    </Figure>
+  </Fragment>
+  <Fragment slot="tab-1">
+    <Figure>
+      <Picture slot="figure" src="../assets/zMDP.pdf" alt="Graphical model of the latent-augmented MDP showing the local-policy path (red), the global-policy marginalization (blue), and the environment dynamics (black)" />
+      <Fragment slot="caption">The **z-MDP** augments each state with the latent $z$, giving a separate local policy $\hat\pi(a \mid s, z)$ per region. The red path shows local anchor generation from $(s, z, \theta)$; the blue path marginalizes over $z$ to recover the global policy $\pi(a \mid s)$.</Fragment>
+    </Figure>
+  </Fragment>
+  <Fragment slot="tab-2">
+    The z-MDP preserves both **state–action marginals** and the **Q-function** — optimizing on the z-MDP is the *same* problem as on the original MDP. Local IS becomes principled, not a heuristic.
+
+    <div class="not-prose my-3 grid gap-3 md:grid-cols-2">
+      <EqBox label="Corollary 4.2 — Marginal consistency">
+        $$
+        \rho_\pi(s, a) = \int \hat\rho_{\hat\pi}(s, z, a)\,dz
+        $$
+      </EqBox>
+      <EqBox label="Corollary 4.4 — Q-function consistency">
+        $$
+        Q^{\hat\pi}(\hat s, a) = Q^{\pi}(s, a), \quad \forall\, s, z, a
+        $$
+      </EqBox>
+    </div>
+
+    <small class="mt-2 block text-xs italic text-zinc-500 dark:text-zinc-400">Full statements (Corollaries 4.2, 4.4) are in the paper. Details are in Appendix B.</small>
+  </Fragment>
+</IdeaTabs>
+</Fragment>
+
+<Fragment slot="bottom-line">
+We construct the **z-MDP**, and prove that optimizing the RL objective on the z-MDP is **equivalent** to optimizing it on the original MDP (**Consistency**). Local IS becomes principled, not a heuristic.
+</Fragment>
+
+</QCard>
+
+<QCard number="Q2" title="How do we incorporate this into MaxEnt-RL and update the policy?">
+
+<Fragment slot="challenge">
+Two obstacles block plugging the z-MDP into MaxEnt-RL:
+
+- **Intractable Entropy.** The composite policy's log-probability $\log\pi(a \mid s)$ requires marginalizing over the latent $z$ — there is **no closed form**.
+- **RL via Supervised Learning.** We want to cast MaxEnt-RL as an **EM algorithm** whose policy update reduces to a *supervised learning* problem — avoiding backprop through the flow ODE (BPTT).
+</Fragment>
+
+<Fragment slot="solution">
+<IdeaTabs labels={["Cross-entropy surrogate", "Localized EM"]}>
+  <Fragment slot="tab-0">
+    <EqBox label="Proposition 4.3 — Cross-entropy surrogate">
+      <div class="md:flex md:items-center md:gap-5">
+        <div class="min-w-0 md:basis-[63%]">
+
+        $$
+        \begin{aligned}
+        D_{\mathrm{TV}}(\pi, \tilde\pi) &= \mathcal{O}\big(\sqrt{\mathrm{tr}(\Sigma)}\big), \quad
+        D_{\mathrm{KL}}(\pi \,\|\, \tilde\pi) = \mathcal{O}\big(\mathrm{tr}(\Sigma)^2\big) \\[4pt]
+        \mathcal{H}(\pi, \tilde\pi) &= \mathcal{H}(\pi) + \mathcal{O}\big(\mathrm{tr}(\Sigma)^2\big) \approx \mathcal{H}(\pi)
+        \end{aligned}
+        $$
+
+        </div>
+        <div class="mt-3 min-w-0 md:mt-0 md:basis-[37%]">
+          <Picture src="../assets/Proposition_4_3.pdf" alt="Plot showing the global policy converging to the base flow as the local variance shrinks" />
+        </div>
+      </div>
+    </EqBox>
+
+    - Replace the entropy $\mathcal{H}(\pi)$ with the **cross-entropy** $\mathcal{H}(\pi, \tilde\pi)$ against the base flow $\tilde\pi$.
+    - Estimate $\log \tilde \pi(a\mid s)$ via the **Hutchinson trace estimator** — Use **common random numbers (CRN)** to reduce variance in the estimator (Appendix D.3).
+  </Fragment>
+  <Fragment slot="tab-1">
+    <EqBox label="Localized EM on the z-MDP">
+      <div class="md:flex md:items-center md:gap-5">
+        <div class="min-w-0 md:basis-[63%]">
+
+        $$
+        \begin{aligned}
+        \textbf{E-step:}\;\; & q_k(a \mid \hat s) \propto \hat\pi(a \mid \hat s; \theta_k)\,\exp\!\big(f_{\hat s, k}(a)/\lambda\big) \\[6pt]
+        \textbf{M-step:}\;\; & \theta_{k+1} \in \operatorname*{arg\,min}_{\theta}\; \mathbb{E}_{(s,z)\sim\hat\rho_{\hat\pi}}\big\|\, T_\theta(s,z) - \mu_k^*(\hat s) \big\|^2 \\[2pt]
+        & \mu_k^*(\hat s) := \mathbb{E}_{q_k}[a]
+        \end{aligned}
+        $$
+
+        </div>
+        <div class="mt-3 min-w-0 md:mt-0 md:basis-[37%]">
+          <Picture src={localizedEM} alt="Per-latent local Gaussians are shifted toward the Q-weighted target within their local region and distilled back into the flow via CFM" />
+        </div>
+      </div>
+    </EqBox>
+
+    - **E-step** — a local Boltzmann tilt of the Gaussian proposal around each anchor.
+    - **M-step** — supervised regression of the flow onto improved action labels $\mu_k^*$, using *Method of moments* to estimate the labels with $N$ local samples.
+  </Fragment>
+</IdeaTabs>
+</Fragment>
+
+<Fragment slot="bottom-line">
+We use the **cross-entropy as a tractable entropy surrogate** and update the flow via an **EM algorithm on the z-MDP** — supervised distillation onto locally improved labels, *not* gradient-through-flow.
+</Fragment>
+
+</QCard>
+
+<QCard number="Q3" title="Does FLAG provably improve the policy, and how does it relate to SAC?">
+
+<Fragment slot="challenge">
+FLAG updates the policy by **supervised distillation**, not by differentiating the objective through the flow. Two guarantees are therefore not obvious — and this section establishes both:
+
+- **Monotonic improvement.** Does FLAG's update actually raise the objective, i.e. is $\mathcal{J}_{k+1} \geq \mathcal{J}_k$ guaranteed?
+- **Relation to SAC.** We optimize a MaxEnt-RL objective — so how does FLAG's update relate to **Soft Actor–Critic** (SAC), and does it inherit SAC's *soft policy improvement*?
+</Fragment>
+
+<Fragment slot="solution">
+<IdeaTabs labels={["Monotonic Improvement", "Relation to SAC"]}>
+  <Fragment slot="tab-0">
+    <EqBox label="Theorem 4.5 — Monotonic Improvement Guarantee">
+
+    $$
+    \mathcal{J}_{k+1} - \mathcal{J}_k
+    \;\geq\;
+    \underbrace{\lambda \beta \mathcal{G}_k}_{\substack{\text{frozen-reward}\\\text{MPO improvement}}}
+    \;-\;
+    \underbrace{\alpha\, C_\Sigma\, \sigma_k^2\, \beta \mathcal{G}_k}_{\substack{\text{cross-entropy}\\\text{reward drift}}}
+    \;-\;
+    \underbrace{\lambda\, \epsilon_k^{\mathrm{proj}}}_{\substack{\text{CFM projection}\\\text{error}}}
+    \;+\; \mathcal{O}(\beta^2)
+    $$
+
+    </EqBox>
+
+    - One FLAG step splits into a **positive MPO improvement** term, a **cross-entropy drift** that scales with the local variance $\sigma_k^2$, and the **CFM projection error** $\epsilon_k^{\mathrm{proj}}$.
+    - Whenever $\lambda > \alpha\, C_\Sigma\, \sigma_k^2$ and the projection error is small, the improvement term dominates, so $\mathcal{J}_{k+1} \geq \mathcal{J}_k$ — **monotonic improvement**.
+
+    <ProofRoadmap src={mpoProofRoadmap} alt="Proof roadmap for the MPO-style monotonic improvement of FLAG" />
+  </Fragment>
+  <Fragment slot="tab-1">
+    <div class="not-prose space-y-3">
+      <EqBox label="SAC — Soft policy improvement">
+
+      $$
+      \pi_{\mathrm{new}} = \operatorname*{arg\,min}_{\pi \in \Pi} D_{\mathrm{KL}}\!\left( \pi(a \mid s) \,\Big\|\, \tfrac{1}{Z}\exp\!\big(Q^{\pi_{\mathrm{old}}}/\alpha\big) \right)
+      \;\Longrightarrow\;
+      Q^{\pi_{\mathrm{new}}} \geq Q^{\pi_{\mathrm{old}}}
+      $$
+
+      </EqBox>
+      <EqBox label="FLAG — zeroth-order realization">
+
+      $$
+      \begin{aligned}
+      g_k(\mu) &:= \underbrace{\log \mathbb{E}_{\delta \sim \mathcal{N}(0,\, \Sigma_k)}\big[\exp\!\big( f_{\hat s, k}(\mu + \delta)/\lambda \big)\big]}_{\text{log-sum-exp smoothing}} \\[12pt]
+      \underbrace{\mu_k^*(\hat s) - \mu_k}_{\text{FLAG M-step}} &\overset{(\text{Stein's identity})}{=} \Sigma_k \nabla_\mu g_k
+      \;\approx\;
+      \Sigma_k \underbrace{\nabla_a\!\big( Q^{\tilde\pi}(s, a) - \alpha \log \tilde\pi_{\theta_k}(a \mid s) \big)}_{\text{SAC action gradient}}
+      \end{aligned}
+      $$
+
+      </EqBox>
+    </div>
+
+    - SAC's soft policy improvement theorem is **agnostic to how** the KL minimizer is obtained.
+    - **SAC** restricts $\Pi$ to a Gaussian and takes a *first-order* reparameterization gradient; **FLAG** solves the same KL minimization with a *non-parametric, action-level* update — a **zeroth-order** approximation via Stein's identity and log-sum-exp smoothing.
+    <small class="mt-2 block text-xs italic text-zinc-500 dark:text-zinc-400">Full statements and details are in Appendix C.2.</small>
+
+    <ProofRoadmap src={sacProofRoadmap} alt="Proof roadmap comparing SAC's reparameterized update with FLAG's non-parametric EM update" />
+  </Fragment>
+</IdeaTabs>
+</Fragment>
+
+<Fragment slot="bottom-line">
+Monotonic improvement is established from **two complementary perspectives — MPO (variational) and SAC (soft policy improvement)** — and FLAG realizes SAC-style improvement for expressive flow policies **without ever differentiating through the flow ODE**.
+</Fragment>
+
+</QCard>
+
+## Experimental Results
+
+We present the results around the three questions used in Section 5 of the paper.
+
+<ResultZoomHint
+  thumbSrc={q1Figure3Thumb}
+  detailSrc={q1Figure3Detail}
+  alt="Figure 3 preview expanding to detailed view with caption"
+/>
+
+<div class="not-prose mb-5 rounded-lg border border-teal-200 bg-teal-50 px-4 py-3 text-sm leading-relaxed text-teal-950 dark:border-emerald-500/50 dark:bg-emerald-900/40 dark:text-emerald-100">
+  <div class="mb-1.5 text-xs font-bold uppercase tracking-wider text-teal-700 dark:text-emerald-300">Term used in experiments</div>
+  <p><strong class="font-bold text-teal-800 dark:text-emerald-200">best-of-P:</strong> when sampling actions from the policy (e.g., during rollout and policy update), <em>P</em> candidate actions are drawn and the one with the highest Q-value is selected.</p>
+</div>
+
+<ResultQCard
+  number="Q1"
+  question="Does FLAG scale to high-dimensional action spaces under limited sample budgets?"
+  answer="FLAG is Scalable to High-dimensional Action Spaces and Robust to Sample Budget"
+>
+  <div class="flex flex-col gap-3">
+
+    <details class="group/sub rounded-lg border border-zinc-200 bg-white open:shadow-sm dark:border-zinc-700 dark:bg-zinc-900/40">
+      <summary class="flex cursor-pointer list-none items-center gap-3 px-4 py-3 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/40 [&::-webkit-details-marker]:hidden">
+        <span class="inline-flex shrink-0 items-center rounded-full bg-teal-700 px-3 py-1 text-xs font-bold text-white">Q1.1</span>
+        <span class="flex-1 text-sm font-semibold text-zinc-800 dark:text-zinc-100 md:text-base">Is FLAG scalable to high-dimensional action spaces?</span>
+        <svg class="h-5 w-5 shrink-0 text-zinc-400 transition-transform duration-300 group-open/sub:rotate-180 dark:text-zinc-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path></svg>
+      </summary>
+      <div class="border-t border-zinc-200 px-4 pb-4 pt-3 dark:border-zinc-700">
+        <p class="mb-3 text-sm text-zinc-600 dark:text-zinc-300">FLAG stays in the high-return, low-runtime region as action dimensionality increases, while global-proposal baselines degrade or require larger best-of-P budgets.</p>
+        <Tabs defaultValue="q1-scale-with-crossq">
+          <TabsList class="flex flex-wrap gap-1 rounded-full bg-zinc-100 p-1 dark:bg-zinc-800">
+            <TabsTrigger value="q1-scale-with-crossq" class="gap-1.5 px-4 py-1 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-teal-700 data-[state=active]:shadow-sm dark:data-[state=active]:bg-zinc-700 dark:data-[state=active]:text-emerald-300"><span class="h-1.5 w-1.5 rounded-full bg-teal-600 dark:bg-emerald-400"></span>With CrossQ</TabsTrigger>
+            <TabsTrigger value="q1-scale-without-crossq" class="gap-1.5 px-4 py-1 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-teal-700 data-[state=active]:shadow-sm dark:data-[state=active]:bg-zinc-700 dark:data-[state=active]:text-emerald-300"><span class="h-1.5 w-1.5 rounded-full bg-teal-600 dark:bg-emerald-400"></span>Without CrossQ</TabsTrigger>
+          </TabsList>
+          <TabsContent value="q1-scale-with-crossq" class="mt-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-900/50">
+            <ResultZoomImage
+              id="q1-figure3"
+              src={q1Figure3Thumb}
+              detailSrc={q1Figure3Detail}
+              alt="Figure 3 comparing performance and GPU hours for global and local proposal sampling across MuJoCo, DMC Dog, and MyoSuite"
+            />
+          </TabsContent>
+          <TabsContent value="q1-scale-without-crossq" class="mt-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-900/50">
+            <ResultZoomImage
+              id="q1-figure4-without-crossq"
+              src={q1Figure4WithoutCrossQThumb}
+              detailSrc={q1Figure4WithoutCrossQDetail}
+              alt="Figure 4 DMC Dog-run and Dog-trot comparison without CrossQ"
+            />
+          </TabsContent>
+        </Tabs>
+      </div>
+    </details>
+
+    <details class="group/sub rounded-lg border border-zinc-200 bg-white open:shadow-sm dark:border-zinc-700 dark:bg-zinc-900/40">
+      <summary class="flex cursor-pointer list-none items-center gap-3 px-4 py-3 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/40 [&::-webkit-details-marker]:hidden">
+        <span class="inline-flex shrink-0 items-center rounded-full bg-teal-700 px-3 py-1 text-xs font-bold text-white">Q1.2</span>
+        <span class="flex-1 text-sm font-semibold text-zinc-800 dark:text-zinc-100 md:text-base">Is FLAG robust to the sample budget?</span>
+        <svg class="h-5 w-5 shrink-0 text-zinc-400 transition-transform duration-300 group-open/sub:rotate-180 dark:text-zinc-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path></svg>
+      </summary>
+      <div class="border-t border-zinc-200 px-4 pb-4 pt-3 dark:border-zinc-700">
+        <p class="mb-3 text-sm text-zinc-600 dark:text-zinc-300">Local proposal matching keeps importance samples informative even when the update uses only a small number of samples.</p>
+        <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-900/50">
+          <ResultZoomImage
+            id="q1-table1"
+            src={q1Table1Thumb}
+            detailSrc={q1Table1Detail}
+            alt="Table 1 ablation study on the number of training samples in DMC Dog tasks"
+          />
+        </div>
+      </div>
+    </details>
+
+    <details class="group/sub rounded-lg border border-zinc-200 bg-white open:shadow-sm dark:border-zinc-700 dark:bg-zinc-900/40">
+      <summary class="flex cursor-pointer list-none items-center gap-3 px-4 py-3 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/40 [&::-webkit-details-marker]:hidden">
+        <span class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-blue-600 px-3 py-1 text-xs font-bold text-white dark:bg-sky-400 dark:text-sky-950">
+          <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18M7 14l3-3 3 3 5-6"></path></svg>
+          <span>Learning curve</span>
+        </span>
+        <span class="flex-1 text-sm font-semibold text-zinc-800 dark:text-zinc-100 md:text-base">Learning Curves</span>
+        <svg class="h-5 w-5 shrink-0 text-zinc-400 transition-transform duration-300 group-open/sub:rotate-180 dark:text-zinc-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path></svg>
+      </summary>
+      <div class="border-t border-zinc-200 px-4 pb-4 pt-3 dark:border-zinc-700">
+        <Tabs defaultValue="q1-learning-without-best-of-p">
+          <TabsList class="flex flex-wrap gap-1 rounded-full bg-zinc-100 p-1 dark:bg-zinc-800">
+            <TabsTrigger value="q1-learning-without-best-of-p" class="gap-1.5 px-4 py-1 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-teal-700 data-[state=active]:shadow-sm dark:data-[state=active]:bg-zinc-700 dark:data-[state=active]:text-emerald-300"><span class="h-1.5 w-1.5 rounded-full bg-blue-600 dark:bg-sky-400"></span>Without best-of-P</TabsTrigger>
+            <TabsTrigger value="q1-learning-with-best-of-p" class="gap-1.5 px-4 py-1 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-teal-700 data-[state=active]:shadow-sm dark:data-[state=active]:bg-zinc-700 dark:data-[state=active]:text-emerald-300"><span class="h-1.5 w-1.5 rounded-full bg-blue-600 dark:bg-sky-400"></span>With best-of-P (P=32)</TabsTrigger>
+          </TabsList>
+          <TabsContent value="q1-learning-without-best-of-p" class="mt-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-900/50">
+            <ResultZoomImage
+              id="q1-figure9-p1"
+              src={q1Figure9P1Thumb}
+              detailSrc={q1Figure9P1Detail}
+              alt="Figure 9 full learning curves of Figure 3 without best-of-P"
+            />
+          </TabsContent>
+          <TabsContent value="q1-learning-with-best-of-p" class="mt-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-900/50">
+            <ResultZoomImage
+              id="q1-figure10-p32"
+              src={q1Figure10P32Thumb}
+              detailSrc={q1Figure10P32Detail}
+              alt="Figure 10 full learning curves of Figure 3 with best-of-P P equals 32"
+            />
+          </TabsContent>
+        </Tabs>
+      </div>
+    </details>
+
+  </div>
+</ResultQCard>
+
+<ResultQCard
+  number="Q2"
+  question="How does FLAG compare to action-gradient and BPTT-based actor-critic methods?"
+  answer="FLAG Outperforms BPTT-based Actor-Critic and Action Gradient Methods"
+>
+  <Tabs defaultValue="q2-with-crossq">
+    <TabsList class="rounded-full bg-zinc-100 p-1 dark:bg-zinc-800">
+      <TabsTrigger value="q2-with-crossq" class="gap-1.5 px-4 py-1 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-teal-700 data-[state=active]:shadow-sm dark:data-[state=active]:bg-zinc-700 dark:data-[state=active]:text-emerald-300"><span class="h-1.5 w-1.5 rounded-full bg-teal-600 dark:bg-emerald-400"></span>With CrossQ</TabsTrigger>
+      <TabsTrigger value="q2-without-crossq" class="gap-1.5 px-4 py-1 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-teal-700 data-[state=active]:shadow-sm dark:data-[state=active]:bg-zinc-700 dark:data-[state=active]:text-emerald-300"><span class="h-1.5 w-1.5 rounded-full bg-teal-600 dark:bg-emerald-400"></span>Without CrossQ</TabsTrigger>
+    </TabsList>
+
+    <TabsContent value="q2-with-crossq" class="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900/40">
+      <Tabs defaultValue="q2-table2">
+        <TabsList class="flex flex-wrap gap-1 rounded-full bg-zinc-100 p-1 dark:bg-zinc-800">
+          <TabsTrigger value="q2-table2" class="gap-1.5 px-4 py-1 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-teal-700 data-[state=active]:shadow-sm dark:data-[state=active]:bg-zinc-700 dark:data-[state=active]:text-emerald-300"><span class="h-1.5 w-1.5 rounded-full bg-red-600 dark:bg-amber-400"></span>DMC-Dog & Myo-Suite</TabsTrigger>
+          <TabsTrigger value="q2-learning-curves" class="gap-1.5 px-4 py-1 text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-teal-700 data-[state=active]:shadow-sm dark:data-[state=active]:bg-zinc-700 dark:data-[state=active]:text-emerald-300"><span class="h-1.5 w-1.5 rounded-full bg-blue-600 dark:bg-sky-400"></span>MuJoCo (Learning Curve)</TabsTrigger>
+        </TabsList>
+        <TabsContent value="q2-table2" class="mt-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-900/50">
+          <ResultZoomImage
+            id="q2-table2"
+            src={q2Table2Thumb}
+            detailSrc={q2Table2Detail}
+            alt="Table 2 IQM final performance on DMC Dog and MyoSuite"
+          />
+        </TabsContent>
+        <TabsContent value="q2-learning-curves" class="mt-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-900/50">
+          <ResultZoomImage
+            id="q2-figure11"
+            src={q2Figure11Thumb}
+            detailSrc={q2Figure11Detail}
+            alt="Figure 11 learning curves for diffusion and flow-matching algorithms in four MuJoCo tasks"
+          />
+        </TabsContent>
+      </Tabs>
+    </TabsContent>
+
+    <TabsContent value="q2-without-crossq" class="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900/40">
+      <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-900/50">
+        <ResultZoomImage
+          id="q2-table8-without-crossq"
+          src={q2Table8WithoutCrossQThumb}
+          detailSrc={q2Table8WithoutCrossQDetail}
+          alt="Table 8 DMC Dog performance without CrossQ in Section 5.1"
+        />
+      </div>
+      <div class="mt-3 rounded-lg border border-teal-200 bg-teal-50 px-4 py-3 text-sm leading-relaxed text-teal-950 dark:border-emerald-500/50 dark:bg-emerald-900/40 dark:text-emerald-100">
+        <p><strong class="text-teal-800 dark:text-emerald-200">Without CrossQ,</strong> critic gradients become less reliable.</p>
+        <p class="mt-2">FLAG remains effective because it aggregates critic signals into target actions rather than differentiating through the critic directly.</p>
+      </div>
+    </TabsContent>
+  </Tabs>
+</ResultQCard>
+
+<ResultQCard
+  number="Q3"
+  question="How do our key design choices---covariance scheduling and the guidance buffer---connect to the theoretical results?"
+  answer="FLAG Key Design Choices Align with Theoretical Results"
+>
+  <div class="flex flex-col gap-4">
+    <details class="group/sub rounded-lg border border-zinc-200 bg-white open:shadow-sm dark:border-zinc-700 dark:bg-zinc-900/40">
+      <summary class="flex cursor-pointer list-none items-center gap-3 px-4 py-3 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/40 [&::-webkit-details-marker]:hidden">
+        <span class="inline-flex shrink-0 items-center rounded-full bg-teal-700 px-3 py-1 text-xs font-bold text-white">A3.1</span>
+        <span class="flex-1 text-sm font-semibold text-zinc-800 dark:text-zinc-100 md:text-base">Covariance Scheduling</span>
+        <a href="#Q3" onclick="event.stopPropagation()" class="not-prose shrink-0 inline-flex items-center gap-1.5 rounded-full border border-teal-700/40 bg-white/80 px-2.5 py-1 text-xs font-semibold text-teal-800! no-underline! transition-colors hover:bg-teal-50"><span class="inline-block h-1.5 w-1.5 rounded-full bg-teal-600"></span>Controls σ²ₖ · Theorem 4.5 (Q3) ↑</a>
+        <svg class="h-5 w-5 shrink-0 text-zinc-400 transition-transform duration-300 group-open/sub:rotate-180 dark:text-zinc-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path></svg>
+      </summary>
+      <div class="border-t border-zinc-200 px-4 pb-4 pt-3 dark:border-zinc-700">
+      <p class="mb-3 text-sm text-zinc-600 dark:text-zinc-300">Annealing the local covariance suppresses the covariance-dependent reward drift in Theorem 4.5 while preserving enough early exploration.</p>
+      <div class="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-700">
+        <table class="min-w-[720px] border-collapse text-center text-xs">
+          <thead class="bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+            <tr>
+              <th class="px-2 py-2 text-left">σinit (σfinal)</th>
+              <th class="px-2 py-2">-1(-1)</th>
+              <th class="px-2 py-2">-1(-2)</th>
+              <th class="px-2 py-2">-1(-3)</th>
+              <th class="px-2 py-2">-2(-2)</th>
+              <th class="px-2 py-2">-2(-3)</th>
+              <th class="px-2 py-2">-2(-4)</th>
+              <th class="px-2 py-2">-2(-5)</th>
+              <th class="px-2 py-2">-2(-6)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-t border-zinc-200 dark:border-zinc-700">
+              <td class="px-2 py-2 text-left font-semibold">Return (1k) ↑</td>
+              <td class="px-2 py-2">0.614</td>
+              <td class="px-2 py-2">0.675</td>
+              <td class="bg-teal-100 px-2 py-2 font-bold text-teal-900 dark:bg-emerald-950 dark:text-emerald-100">0.732</td>
+              <td class="px-2 py-2">0.588</td>
+              <td class="bg-teal-50 px-2 py-2 font-bold text-teal-800 dark:bg-emerald-950/50 dark:text-emerald-200">0.680</td>
+              <td class="px-2 py-2">0.597</td>
+              <td class="px-2 py-2">0.547</td>
+              <td class="px-2 py-2">0.269</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-2 text-xs italic text-zinc-500 dark:text-zinc-400">DMC Dog-run, 5 seeds. -2(-3) is the default used in Section 5.1 and 5.2.</div>
+      </div>
+    </details>
+
+    <details class="group/sub rounded-lg border border-zinc-200 bg-white open:shadow-sm dark:border-zinc-700 dark:bg-zinc-900/40">
+      <summary class="flex cursor-pointer list-none items-center gap-3 px-4 py-3 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/40 [&::-webkit-details-marker]:hidden">
+        <span class="inline-flex shrink-0 items-center rounded-full bg-teal-700 px-3 py-1 text-xs font-bold text-white">A3.2</span>
+        <span class="flex-1 text-sm font-semibold text-zinc-800 dark:text-zinc-100 md:text-base">Guidance Buffer</span>
+        <a href="#Q3" onclick="event.stopPropagation()" class="not-prose shrink-0 inline-flex items-center gap-1.5 rounded-full border border-teal-700/40 bg-white/80 px-2.5 py-1 text-xs font-semibold text-teal-800! no-underline! transition-colors hover:bg-teal-50"><span class="inline-block h-1.5 w-1.5 rounded-full bg-teal-600"></span>Controls εₖ · Theorem 4.5 (Q3) ↑</a>
+        <svg class="h-5 w-5 shrink-0 text-zinc-400 transition-transform duration-300 group-open/sub:rotate-180 dark:text-zinc-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path></svg>
+      </summary>
+      <div class="border-t border-zinc-200 px-4 pb-4 pt-3 dark:border-zinc-700">
+      <p class="mb-3 text-sm text-zinc-600 dark:text-zinc-300">A moderate guidance buffer reduces CFM projection error by reusing recent improved action labels without letting targets become stale.</p>
+      <div class="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-700">
+        <table class="mx-auto min-w-[480px] border-collapse text-center text-xs">
+          <thead class="bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+            <tr>
+              <th class="px-2 py-2 text-left">Buffer Size</th>
+              <th class="px-2 py-2">0</th>
+              <th class="px-2 py-2">10.24k</th>
+              <th class="px-2 py-2">51.2k</th>
+              <th class="px-2 py-2">102.4k</th>
+              <th class="px-2 py-2">204.8k</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-t border-zinc-200 dark:border-zinc-700">
+              <td class="px-2 py-2 text-left font-semibold">Return (1k) ↑</td>
+              <td class="px-2 py-2">0.601</td>
+              <td class="bg-teal-100 px-2 py-2 font-bold text-teal-900 dark:bg-emerald-950 dark:text-emerald-100">0.680</td>
+              <td class="bg-teal-50 px-2 py-2 font-bold text-teal-800 dark:bg-emerald-950/50 dark:text-emerald-200">0.670</td>
+              <td class="px-2 py-2">0.618</td>
+              <td class="px-2 py-2">0.589</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-2 text-center text-xs italic text-zinc-500 dark:text-zinc-400">DMC Dog-run, 5 seeds. 10.24k is the default used in Section 5.1 and 5.2.</div>
+      </div>
+    </details>
+  </div>
+</ResultQCard>
+
+{/*
+## Design Choices & Ablations
+
+FLAG's monotonic-improvement bound (**Theorem 4.5**, see [Q3](#Q3)) decomposes one update into a *positive MPO improvement* minus two error terms — a **cross-entropy reward drift** (which grows with the local variance) and a **CFM projection error**. FLAG's two key design choices each exist to suppress one of these terms, so the ablations below are direct empirical tests of the theory. Secondary ablations are collapsed at the end.
+
+<ColorBox color="#0F766E" title="Covariance scheduling — suppresses the cross-entropy drift">
+
+<a href="#Q3" class="not-prose mb-1 inline-flex items-center gap-1.5 rounded-full border border-teal-700/40 bg-white/80 px-3 py-1 text-xs font-semibold !text-teal-800 !no-underline transition-colors hover:bg-teal-50">
+<span class="inline-block h-1.5 w-1.5 rounded-full bg-teal-600"></span>
+Controls σ²ₖ → the cross-entropy reward drift term · Theorem 4.5 (Q3) ↑
+</a>
+
+The drift term scales with the local variance $\sigma_k^2$, and the improvement condition $\lambda > \alpha\,C_\Sigma\,\sigma_k^2$ becomes easier to satisfy as $\sigma_k^2$ shrinks. FLAG therefore **anneals** $\sigma$ from $\sigma_{\text{init}}$ to $\sigma_{\text{final}}$ — broad early exploration, precise late updates. Annealing *too* aggressively shrinks the search region prematurely and collapses onto suboptimal modes.
+
+<div class="not-prose mt-3 flex flex-wrap gap-2 text-center">
+<div class="rounded-md border border-zinc-300 bg-white/70 px-2.5 py-1.5"><div class="text-[10px] font-medium text-zinc-500">-1(-1)</div><div class="text-sm font-bold text-zinc-800">0.614</div></div>
+<div class="rounded-md border border-zinc-300 bg-white/70 px-2.5 py-1.5"><div class="text-[10px] font-medium text-zinc-500">-1(-2)</div><div class="text-sm font-bold text-zinc-800">0.675</div></div>
+<div class="rounded-md border-2 border-teal-600 bg-teal-100 px-2.5 py-1.5"><div class="text-[10px] font-semibold text-teal-700">-1(-3) ★</div><div class="text-sm font-extrabold text-teal-900">0.732</div></div>
+<div class="rounded-md border border-zinc-300 bg-white/70 px-2.5 py-1.5"><div class="text-[10px] font-medium text-zinc-500">-2(-2)</div><div class="text-sm font-bold text-zinc-800">0.588</div></div>
+<div class="rounded-md border border-zinc-300 bg-white/70 px-2.5 py-1.5"><div class="text-[10px] font-medium text-zinc-500">-2(-3)</div><div class="text-sm font-bold text-zinc-800">0.680</div></div>
+<div class="rounded-md border border-zinc-300 bg-white/70 px-2.5 py-1.5"><div class="text-[10px] font-medium text-zinc-500">-2(-4)</div><div class="text-sm font-bold text-zinc-800">0.597</div></div>
+<div class="rounded-md border border-zinc-300 bg-white/70 px-2.5 py-1.5"><div class="text-[10px] font-medium text-zinc-500">-2(-5)</div><div class="text-sm font-bold text-zinc-800">0.547</div></div>
+<div class="rounded-md border border-zinc-300 bg-white/70 px-2.5 py-1.5"><div class="text-[10px] font-medium text-zinc-500">-2(-6)</div><div class="text-sm font-bold text-zinc-800">0.269</div></div>
+</div>
+
+<div class="not-prose mt-2 text-xs italic text-zinc-600">DMC Dog-run, return ÷1000, 5 seeds · log σ_init(σ_final) · ★ = default</div>
+
+</ColorBox>
+
+<ColorBox color="#0F766E" title="Guidance buffer — suppresses the CFM projection error">
+
+<a href="#Q3" class="not-prose mb-1 inline-flex items-center gap-1.5 rounded-full border border-teal-700/40 bg-white/80 px-3 py-1 text-xs font-semibold !text-teal-800 !no-underline transition-colors hover:bg-teal-50">
+<span class="inline-block h-1.5 w-1.5 rounded-full bg-teal-600"></span>
+Controls εₖ → the CFM projection error term · Theorem 4.5 (Q3) ↑
+</a>
+
+The CFM projection error $\epsilon_k^{\text{proj}}$ measures how faithfully the flow realizes the M-step target actions. A small **guidance buffer** caches recently computed targets and reuses them across off-policy updates, giving *denser* supervision and a smaller $\epsilon_k^{\text{proj}}$. No buffer leaves supervision sparse; an over-large buffer serves stale, mismatched targets.
+
+<div class="not-prose mt-3 flex flex-wrap gap-2 text-center">
+<div class="rounded-md border border-zinc-300 bg-white/70 px-2.5 py-1.5"><div class="text-[10px] font-medium text-zinc-500">0 (none)</div><div class="text-sm font-bold text-zinc-800">0.601</div></div>
+<div class="rounded-md border-2 border-teal-600 bg-teal-100 px-2.5 py-1.5"><div class="text-[10px] font-semibold text-teal-700">10.24k ★</div><div class="text-sm font-extrabold text-teal-900">0.680</div></div>
+<div class="rounded-md border border-zinc-300 bg-white/70 px-2.5 py-1.5"><div class="text-[10px] font-medium text-zinc-500">51.2k</div><div class="text-sm font-bold text-zinc-800">0.670</div></div>
+<div class="rounded-md border border-zinc-300 bg-white/70 px-2.5 py-1.5"><div class="text-[10px] font-medium text-zinc-500">102.4k</div><div class="text-sm font-bold text-zinc-800">0.618</div></div>
+<div class="rounded-md border border-zinc-300 bg-white/70 px-2.5 py-1.5"><div class="text-[10px] font-medium text-zinc-500">204.8k</div><div class="text-sm font-bold text-zinc-800">0.589</div></div>
+</div>
+
+<div class="not-prose mt-2 text-xs italic text-zinc-600">DMC Dog-run, return ÷1000 · buffer size · ★ = default</div>
+
+</ColorBox>
+
+<details class="group my-6 rounded-xl border border-zinc-200 bg-zinc-50/60 px-5 dark:border-zinc-700 dark:bg-zinc-800/40">
+<summary class="flex cursor-pointer list-none items-center gap-3 py-4 text-sm font-semibold text-zinc-700 dark:text-zinc-200 [&::-webkit-details-marker]:hidden">
+<span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-zinc-600 text-xs font-bold text-white">+5</span>
+<span class="flex-1">More ablations — sample budget · Hutchinson variance reduction · cross-entropy · λ_ref · ODE steps</span>
+<svg class="h-5 w-5 shrink-0 text-zinc-400 transition-transform duration-300 group-open:rotate-180" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path></svg>
+</summary>
+
+<div class="border-t border-zinc-200 pb-4 pt-3 dark:border-zinc-700">
+
+#### Sample budget $N$ — robust down to $N=2$
+
+Because local IS keeps proposal and target overlapping, FLAG stays strong even with only $N=2$ samples per update (default $N=8$). DMC Dog, return ÷1000, 10 seeds.
+
+<div class="not-prose mt-2 flex flex-wrap gap-2 text-center text-xs">
+<div class="rounded-md border border-zinc-300 bg-white/70 px-2.5 py-1.5"><div class="font-semibold text-zinc-500">N=2</div><div class="text-zinc-800">trot 0.620 · run 0.818</div></div>
+<div class="rounded-md border border-zinc-300 bg-white/70 px-2.5 py-1.5"><div class="font-semibold text-zinc-500">N=4</div><div class="text-zinc-800">trot 0.639 · run 0.827</div></div>
+<div class="rounded-md border-2 border-teal-600 bg-teal-100 px-2.5 py-1.5"><div class="font-bold text-teal-700">N=8 ★</div><div class="font-semibold text-teal-900">trot 0.680 · run 0.912</div></div>
+<div class="rounded-md border border-zinc-300 bg-white/70 px-2.5 py-1.5"><div class="font-semibold text-zinc-500">N=16</div><div class="text-zinc-800">trot 0.687 · run 0.874</div></div>
+<div class="rounded-md border border-zinc-300 bg-white/70 px-2.5 py-1.5"><div class="font-semibold text-zinc-500">N=32</div><div class="text-zinc-800">trot 0.641 · run 0.879</div></div>
+</div>
+
+#### Hutchinson variance reduction
+
+FLAG estimates $\log\tilde\pi$ with the Hutchinson trace estimator, sharing random tangent vectors across action samples (CRN). This both **accelerates learning** and **sharply reduces variance across seeds**, yielding more robust convergence.
+
+#### Cross-entropy surrogate
+
+Replacing the intractable entropy with the cross-entropy surrogate lets FLAG reach 90% of peak performance **≈10% faster on Dog-run and ≈41% faster on Dog-trot** than a no-cross-entropy variant, by regularizing against early value over-estimation.
+
+#### Trust-region temperature $\lambda_{\text{ref}}$
+
+$\lambda_{\text{ref}}$ sets how far each update may move from the reference policy. Both extremes hurt — too large is unstable, too small over-constrains — and $\lambda_{\text{ref}}=10$ is the most consistent across tasks.
+
+#### ODE solver steps
+
+Performance is **largely insensitive** to the number of flow-integration steps (tested 2–32) while runtime grows roughly linearly, so FLAG fixes **8 steps** as the efficiency sweet spot.
+
+</div>
+</details>
+*/}
+
+{/* <Wide>
+  <Picture src={dogsDiffc} alt="Photo of two running dogs, lossily compressed using the DiffC algorithm" />
+</Wide>
+
+### Figure with caption
+
+Wrap a visual in a `Figure` component to add a caption.
+
+<Figure>
+  <Picture slot="figure" src={dogsDiffc} alt="Photo of two running dogs, lossily compressed using the DiffC algorithm" />
+  <Fragment slot="caption">A photo of two dogs running side-by-side in shallow water, lossily compressed using the [DiffC algorithm](https://jeremyiv.github.io/diffc-project-page/).</Fragment>
+</Figure>
+
+### Comparison slider
+
+Use the `Comparison` component to compare two visuals with an interactive slider.
+
+<Comparison client:idle >
+  <Picture slot="itemOne" src={dogsDiffc} alt="Photo of two running dogs, lossily compressed using the DiffC algorithm" />
+  <Picture slot="itemTwo" src={dogsTrue} alt="True photo of two dogs running side-by-side in shallow water" />
+</Comparison> */}
+
+{/* ### Tab panels
+
+Tab panels are a great way to display a labeled collection of related visuals without taking up too much space.
+
+<Tabs defaultValue="true">
+  <TabsList>
+    <TabsTrigger value="true">Ground truth</TabsTrigger>
+    <TabsTrigger value="diffc">DiffC (Flux-dev)</TabsTrigger>
+    <TabsTrigger value="msillm">MS-ILLM</TabsTrigger>
+  </TabsList>
+  <TabsContent value="true">
+    <Picture
+      src={dogsTrue}
+      alt="True photo of two dogs running side-by-side in shallow water"
+    />
+  </TabsContent>
+  <TabsContent value="diffc">
+    <Picture
+      src={dogsDiffc}
+      alt="Photo of two running dogs, lossily compressed using the DiffC algorithm"
+    />
+  </TabsContent>
+  <TabsContent value="msillm">
+    <Picture
+      src={dogsMsillm}
+      alt="Photo of two running dogs, lossily compressed using MS-ILLM"
+    />
+  </TabsContent>
+</Tabs>
+
+### Carousel
+
+A carousel is another useful pattern for a collection of visuals that don't necessarily have meaningful labels.
+
+<Carousel>
+  <CarouselSlide>
+    <Picture src={dogsTrue} alt="True photo of two dogs running side-by-side in shallow water" />
+  </CarouselSlide>
+  <CarouselSlide>
+    <Picture src={dogsDiffc} alt="Photo of two running dogs, lossily compressed using the DiffC algorithm" />
+  </CarouselSlide>
+  <CarouselSlide>
+    <Picture
+      src={dogsMsillm}
+      alt="Photo of two running dogs, lossily compressed using MS-ILLM"
+    />
+  </CarouselSlide>
+</Carousel>
+
+## Two columns
+
+Use the two columns component to display two columns of content. In this example, the first column contains a YouTube video embed and the second column contains an interactive 3D model viewer. By default, they display side by side, but if the screen is narrow enough (for example, on mobile), they're arranged vertically.
+
+<TwoColumns>
+  <YouTubeVideo slot="left" videoId="wjZofJX0v4M" />
+  <ModelViewer slot="right" src="/BoxVertexColors.glb" alt="A cube colored with a rainbow gradient" />
+</TwoColumns>
+
+## $\LaTeX$
+
+You can also add $\LaTeX$ formulas, rendered during the build process using [$\KaTeX$](https://katex.org/) so they're quick to load for visitors of your project page. You can write them inline, like this: $a^2 + b^2 = c^2$. Or, you can write them as a block:
+
+$$
+\int_a^b f(x) dx
+$$ */}
+
+{/* ## Citation
+
+If you copy your bibliography into `./bibliography.bib`, you can cite papers using their BibTeX keys, and they'll be automatically formatted and included in the bibliography section at the end. For example: [@vaswani2017attention]. Note that these citations are distinct from footnotes[^mynote], which show up in a separate section if you use them.
+
+[^mynote]: On the web, they should really be called "endnotes", since each page constitutes a full document. */}
+
+{/* ## Table
+
+Add simple tables using [GitHub Flavored Markdown syntax](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-tables):
+
+| Model | Accuracy | F1 score | Training time (hours) |
+| :--- | :---: | :---: | :---: |
+| BERT-base | 0.89 | 0.87 | 4.5 |
+| RoBERTa-large | 0.92 | 0.91 | 7.2 |
+| DistilBERT | 0.86 | 0.84 | 2.1 |
+| XLNet | 0.90 | 0.89 | 6.8 | */}
+
+## BibTeX citation
+
+Displaying the BibTeX entry for your paper in a code block makes it easy to copy and paste.
+
+```bibtex
+@misc{roman2024academic,
+  author = "{Roman Hauksson}",
+  title = "Academic Project Page Template",
+  year = "2024",
+  howpublished = "\url{https://research-template.roman.technology}",
+}
+```
+
+{/* ## Bibliography
+
+[^ref] */}
