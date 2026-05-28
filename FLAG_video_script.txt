@@ -1,0 +1,68 @@
+[Slide 1]
+We introduce FLAG — a flow-policy MaxEnt-RL framework that achieves policy improvement via latent-augmented guidance.
+
+[Slide 2]
+Multi-modal, expressive policies capture near-optimal behaviors in online RL that unimodal Gaussians fundamentally cannot represent.
+
+[Slide 3]
+Training them typically requires BPTT, which is numerically unstable and memory-intensive. Supervised learning on a target distribution is appealing — but sampling that target remains intractable in high-dimensional action spaces.
+
+[Slide 4]
+Prior methods sample globally — across the entire action space. In high dimensions, target-relevant actions are almost never drawn, causing weight collapse and sparse supervision. FLAG's solution: localize IS by conditioning on the flow latent z, giving dense supervision inside a shared local region where policy improvement actually happens.
+
+[Slide 5]
+This animation makes that contrast concrete.
+
+[Slide 6]
+Challenge one: principled local IS requires localization — a latent-indexed shared region — and consistency — proving local optimization equals MaxEnt-RL on the original MDP. Without consistency, gains are illusory.
+
+[Slide 7]
+FLAG wraps each flow-generated anchor action in a small local Gaussian — one per latent z — and marginalizes over z to recover the global policy.
+
+[Slide 8]
+This defines the z-MDP: a latent-augmented MDP where each latent z indexes its own local action region.
+
+[Slide 9]
+The z-MDP preserves state-action marginals and Q-values. Local optimization on the z-MDP is identical to the original policy objective.
+
+[Slide 10]
+Local IS in FLAG is theoretically grounded — equivalent to policy optimization in the original MDP.
+
+[Slide 11]
+Challenge two: incorporating the z-MDP into MaxEnt-RL without BPTT. The composite entropy is intractable, and we need an EM update that reduces to supervised learning.
+
+[Slide 12]
+We replace the entropy with a cross-entropy surrogate against the base flow, estimated via the Hutchinson trace estimator.
+
+[Slide 13]
+The localized EM algorithm: E-step tilts the local Gaussian toward high-Q-value actions; M-step fits the flow to improved action labels via conditional flow matching. No ODE gradients needed.
+
+[Slide 14]
+The result: a principled, fully supervised MaxEnt-RL update for flow policies — no backprop through the flow.
+
+[Slide 15]
+The third challenge: does FLAG's supervised distillation guarantee policy improvement, and how does it connect to SAC?
+
+[Slide 16]
+Theorem 4.5 establishes monotonic improvement. Each step yields a positive MPO improvement term minus bounded cross-entropy drift and projection error — improvement can be guaranteed under our implementation details.
+
+[Slide 17]
+FLAG also realizes SAC-style soft policy improvement: via Stein's identity, the M-step is a zeroth-order approximation to SAC's reparameterized action gradient.
+
+[Slide 18]
+FLAG provably improves the policy from both MPO and SAC perspectives — without ever differentiating through the flow ODE.
+
+[Slide 19]
+In experiments, FLAG scales to high-dimensional action spaces. Across MuJoCo, DMC Dog, and MyoSuite, it sustains the highest return at the lowest GPU cost as action dimensionality grows.
+
+[Slide 20]
+FLAG is also robust to the sample budget — local IS stays informative even with N equals 2 samples per update.
+
+[Slide 21]
+Against BPTT-based actor-critic and action-gradient methods, FLAG achieves state-of-the-art performance on DMC Dog and MyoSuite.
+
+[Slide 22]
+Even without CrossQ's normalization, FLAG outperforms. Aggregating critic signals into action targets is more robust than differentiating through the critic.
+
+[Slide 23]
+More results, interactive figures for details, and proof roadmaps are available on our project page. Thanks for watching.

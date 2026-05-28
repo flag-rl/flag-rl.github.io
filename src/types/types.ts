@@ -6,7 +6,7 @@ export type Author = {
 };
 
 export type Link = {
-  url: string;
+  url?: string;
   name: string;
   icon?: string;
 };

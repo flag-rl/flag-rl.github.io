@@ -1,0 +1,54 @@
+---
+/**
+ * A single "step" in the presentation. Hidden by default in presentation
+ * mode; revealed by the controller when its turn comes, with a chosen
+ * fade/slide effect. In normal mode it renders as a plain wrapper.
+ *
+ *   <PresentationStep effect="fade-up" hold={2000}>
+ *     ...content...
+ *   </PresentationStep>
+ *
+ * Props:
+ *   delay    — extra ms to wait *before* revealing (default 0)
+ *   hold     — ms to hold *after* revealing, before the next step (default 1200)
+ *   effect   — animation style (default "fade-up")
+ *   as       — element tag (default "div")
+ *
+ * To keep a step always-visible in present mode (e.g., a title), use
+ * `<PresentationStep effect="fade" delay={0} hold={0}>` or set
+ * `data-present-step-static` via the static prop.
+ */
+
+import type { PresentEffect } from "../../lib/presentation";
+
+interface Props {
+  delay?: number;
+  hold?: number;
+  effect?: PresentEffect;
+  as?: "div" | "span" | "section";
+  class?: string;
+  /** If true, the step is revealed instantly with no animation. */
+  static?: boolean;
+}
+
+const {
+  delay = 0,
+  hold = 1200,
+  effect = "fade-up",
+  as = "div",
+  class: className,
+  static: isStatic = false,
+}: Props = Astro.props;
+const Tag = as;
+---
+
+<Tag
+  data-present-step
+  data-present-delay={String(delay)}
+  data-present-hold={String(hold)}
+  data-present-effect={effect}
+  data-present-static={isStatic ? "true" : undefined}
+  class:list={["present-step-host", className]}
+>
+  <slot />
+</Tag>

@@ -1,0 +1,20 @@
+---
+/**
+ * Hides its children only in presentation mode.
+ *
+ * Useful for navigation, footnote affordances, "Click to expand" hints,
+ * or anything that doesn't translate well to a recorded video.
+ */
+
+interface Props {
+  as?: "div" | "span";
+  class?: string;
+}
+
+const { as = "div", class: className }: Props = Astro.props;
+const Tag = as;
+---
+
+<Tag data-present-hide class={className}>
+  <slot />
+</Tag>

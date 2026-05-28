@@ -1,0 +1,93 @@
+---
+/**
+ * PPT variant of IdeaTabs (deck-only).
+ */
+interface Props {
+  labels: string[];
+}
+
+const { labels } = Astro.props;
+---
+
+<div class="ppt-idea-tabs not-prose my-2" data-present-tab-group="idea">
+  <div class="mb-3 flex flex-wrap justify-center gap-2">
+    {
+      labels.map((label, i) => (
+        <button
+          type="button"
+          data-idea-index={String(i)}
+          data-active={i === 0 ? "true" : "false"}
+          class={`ppt-idea-tab rounded-lg border px-3 py-1.5 text-xs font-semibold tracking-wide transition-all md:text-sm ${
+            i === 0
+              ? "border-blue-700 bg-blue-700 text-white shadow-sm dark:border-sky-500 dark:bg-sky-600"
+              : "border-blue-300 bg-white text-blue-700 hover:bg-blue-50 dark:border-sky-600/50 dark:bg-transparent dark:text-sky-300"
+          }`}
+        >
+          {label}
+        </button>
+      ))
+    }
+  </div>
+
+  <div
+    data-idea-panel="0"
+    class="ppt-idea-panel rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm leading-relaxed md:p-4 md:text-base dark:border-sky-600/40 dark:bg-sky-800/25"
+  >
+    <slot name="tab-0" />
+  </div>
+  <div
+    data-idea-panel="1"
+    class="ppt-idea-panel hidden rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm leading-relaxed md:p-4 md:text-base dark:border-sky-600/40 dark:bg-sky-800/25"
+  >
+    <slot name="tab-1" />
+  </div>
+  <div
+    data-idea-panel="2"
+    class="ppt-idea-panel hidden rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm leading-relaxed md:p-4 md:text-base dark:border-sky-600/40 dark:bg-sky-800/25"
+  >
+    <slot name="tab-2" />
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll<HTMLElement>(".ppt-idea-tabs").forEach((root) => {
+    const tabs = root.querySelectorAll<HTMLButtonElement>(".ppt-idea-tab");
+    const panels = root.querySelectorAll<HTMLElement>(".ppt-idea-panel");
+
+    const activeClass = [
+      "border-blue-700",
+      "bg-blue-700",
+      "text-white",
+      "shadow-sm",
+      "dark:border-sky-500",
+      "dark:bg-sky-600",
+    ];
+    const inactiveClass = [
+      "border-blue-300",
+      "bg-white",
+      "text-blue-700",
+      "hover:bg-blue-50",
+      "dark:border-sky-600/50",
+      "dark:bg-transparent",
+      "dark:text-sky-300",
+    ];
+
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", (e) => {
+        e.preventDefault();
+        const idx = tab.dataset.ideaIndex ?? "0";
+
+        tabs.forEach((t) => {
+          const isActive = t === tab;
+          activeClass.forEach((c) => t.classList.toggle(c, isActive));
+          inactiveClass.forEach((c) => t.classList.toggle(c, !isActive));
+        });
+
+        panels.forEach((p) => {
+          if (p.dataset.ideaPanel === idx) p.classList.remove("hidden");
+          else p.classList.add("hidden");
+        });
+      });
+    });
+  });
+</script>

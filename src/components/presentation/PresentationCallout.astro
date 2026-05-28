@@ -1,0 +1,57 @@
+---
+/**
+ * A styled callout box that only appears in presentation mode.
+ * Use it to add narration/explanation that wouldn't fit the normal page.
+ *
+ *   <PresentationCallout tone="teal">
+ *     Notice how the **proposal stays inside the local region** here.
+ *   </PresentationCallout>
+ *
+ * Tones: teal (default), blue, red, amber, zinc.
+ */
+
+interface Props {
+  tone?: "teal" | "blue" | "red" | "amber" | "zinc";
+  label?: string;
+  class?: string;
+}
+
+const { tone = "teal", label, class: className } = Astro.props;
+
+const toneClasses: Record<NonNullable<Props["tone"]>, string> = {
+  teal: "border-teal-300 bg-teal-50/90 text-teal-950 dark:border-emerald-500/60 dark:bg-emerald-900/40 dark:text-emerald-100",
+  blue: "border-blue-300 bg-blue-50/90 text-blue-950 dark:border-sky-500/60 dark:bg-sky-900/40 dark:text-sky-100",
+  red: "border-red-300 bg-red-50/90 text-red-950 dark:border-amber-500/60 dark:bg-amber-900/40 dark:text-amber-100",
+  amber: "border-amber-300 bg-amber-50/90 text-amber-950 dark:border-amber-500/60 dark:bg-amber-900/40 dark:text-amber-100",
+  zinc: "border-zinc-300 bg-zinc-50/90 text-zinc-900 dark:border-zinc-600 dark:bg-zinc-800/60 dark:text-zinc-100",
+};
+
+const labelToneClasses: Record<NonNullable<Props["tone"]>, string> = {
+  teal: "text-teal-700 dark:text-emerald-300",
+  blue: "text-blue-700 dark:text-sky-300",
+  red: "text-red-700 dark:text-amber-300",
+  amber: "text-amber-700 dark:text-amber-300",
+  zinc: "text-zinc-700 dark:text-zinc-300",
+};
+---
+
+<div
+  data-present-only
+  class:list={[
+    "not-prose my-4 rounded-lg border px-4 py-3 text-sm leading-relaxed shadow-sm",
+    toneClasses[tone],
+    className,
+  ]}
+>
+  {label && (
+    <div
+      class:list={[
+        "mb-1.5 text-xs font-bold uppercase tracking-wider",
+        labelToneClasses[tone],
+      ]}
+    >
+      {label}
+    </div>
+  )}
+  <slot />
+</div>

@@ -7,6 +7,7 @@ authors:
     url: https://shkim37.github.io/
     notes: ["*", "1"]
   - name: Gawon Lee
+    url: https://lgw1226.github.io/
     notes: ["*", "1"]
   - name: Jusuk Lee
     url: https://ju-suk.github.io/
@@ -32,10 +33,9 @@ notes:
       text: Equal contribution
 links:
   - name: Paper
-    url: https://github.com/RomanHauksson/academic-project-astro-template
+    url: FLAG_Neurips.pdf
     icon: ri:file-pdf-2-line
-  - name: Code
-    url: https://github.com/RomanHauksson/academic-project-astro-template
+  - name: Code (coming soon)
     icon: ri:github-line
   - name: arXiv
     url: https://github.com/RomanHauksson/academic-project-astro-template
@@ -53,6 +53,7 @@ description: Simple project page template for your research paper, built with As
 ---
 
 import Video from "./components/Video.astro";
+import ScrollVideo from "./components/ScrollVideo.astro";
 import HighlightedSection from "./components/HighlightedSection.astro";
 import ColorBox from "./components/ColorBox.astro";
 import SmallCaps from "./components/SmallCaps.astro";
@@ -64,6 +65,7 @@ import YouTubeVideo from "./components/YouTubeVideo.astro";
 import Carousel from "./components/Carousel.astro";
 import CarouselSlide from "./components/CarouselSlide.astro";
 import Wide from "./components/Wide.astro";
+import SemiWide from "./components/SemiWide.astro";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/starwind/tabs";
 import { Comparison } from "./components/Comparison.tsx";
 import QCard from "./components/QCard.astro";
@@ -75,7 +77,6 @@ import IdeaTabs from "./components/IdeaTabs.astro";
 import EqBox from "./components/EqBox.astro";
 import ProofRoadmap from "./components/ProofRoadmap.astro";
 
-import outside from "./assets/outside.mp4";
 import dogsDiffc from "./assets/dogs-diffc.png"
 import dogsTrue from "./assets/dogs-true.png"
 import dogsMsillm from "@/assets/dogs-msillm.jpg"
@@ -100,81 +101,35 @@ import q2Figure11Thumb from "./assets/q2_figure11_thumb.png"
 import q2Figure11Detail from "./assets/q2_figure11_detail.png"
 import q2Table8WithoutCrossQThumb from "./assets/q2_table8_without_crossq_thumb.png"
 import q2Table8WithoutCrossQDetail from "./assets/q2_table8_without_crossq_detail.png"
+import flagIntro from "./assets/FLAGIntro.mp4"
+import flagProjectIntro from "./assets/FLAG_RL_project_intro_v2.mp4"
 
-{/* <Video src={outside} /> */}
+<ScrollVideo
+  src={flagProjectIntro}
+  audioControls
+  alt="FLAG project introduction video"
+  class="mt-0"
+/>
 
 <HighlightedSection>
 
-## TL;DR
+## Overview
 
-**FLAG** trains expressive flow policies for MaxEnt-RL through supervised target matching, rather than direct gradient-based policy optimization through the flow.
- It replaces fragile global importance sampling with latent-conditioned local importance sampling, enabling scalable high-dimensional control and state-of-the-art performance.
+The main bottleneck in supervised learning of *expressive policies* in online RL is **not expressivity itself, but where supervision comes from**. Prior methods obtain supervised targets by reweighting samples from a *global proposal* **(global IS)**, but in high-dimensional action spaces these samples rarely fall near *target-relevant actions*. The resulting *proposal–target mismatch* causes *weight degeneracy* and provides only sparse supervision for policy improvement.
 
+FLAG addresses this bottleneck by *localizing the target-matching problem* **(local IS)**. Compared to the global IS, FLAG conditions both distributions on the same flow latent variable $z$, so importance sampling is performed inside a shared *latent-conditioned local region*. This gives the proposal meaningful overlap with the target where policy improvement actually occurs.
+
+This simple shift from **_global IS_** to **_local IS_** makes supervised MaxEnt-RL practical for flow policies: **$(i)$ no BPTT**, **$(ii)$ few importance samples**, and **$(iii)$ state-of-the-art performance**.
 
 </HighlightedSection>
 
-## From Global to Local Importance Sampling
 
-Prior methods train diffusion- and flow-based policies by matching a target action distribution,
-such as the unnormalized MaxEnt target $\exp(Q(s, a) / \alpha)$. Since this target cannot be
-sampled from directly, they use **importance sampling (IS)**: sample actions from a proposal policy,
-reweight them toward the target, and perform weighted score or flow matching.
+<ScrollVideo
+  src={flagIntro}
+  alt="Animation contrasting global and local importance sampling on a one-dimensional action landscape"
+  caption="Global proposal samples rarely land on high-Q-value actions (weight collapse); FLAG’s latent-local proposals concentrate informative samples where policy improvement actually happens."
+/>
 
-The limitation is that IS can only reweight actions that were already sampled. When the
-proposal-target discrepancy is large, especially in high-dimensional control, the proposal rarely
-samples target-relevant actions. This yields sparse supervision and lead to failure mode.
-
-**Our key insight** is to change where IS is performed. Prior methods use **Global IS**, which reweights samples over the full action space. 
-FLAG uses **Local IS**: it conditions both the proposal and target on the same flow latent variable $z$,
-so reweighting happens inside a shared local region.
-
-<ColorBox color="#0F766E" title="Local IS turns global target matching into local target matching">
-
-<div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-  <div class="rounded-md border border-zinc-400/60 bg-white/70 p-3">
-    <div class="mb-2 text-xs font-bold tracking-wider text-zinc-600 uppercase">Global IS · prior work</div>
-    <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-sm">
-      <div class="font-semibold text-zinc-500">Region</div>
-      <div>Full action space</div>
-      <div class="font-semibold text-zinc-500">Samples</div>
-      <div>Useful ones are rarely drawn</div>
-      <div class="font-semibold text-zinc-500">Supervision</div>
-      <div><strong>Weak</strong></div>
-    </div>
-  </div>
-  <div class="rounded-md border-2 border-teal-700/60 bg-teal-100/70 p-3">
-    <div class="mb-2 text-xs font-bold tracking-wider text-teal-800 uppercase">Local IS · FLAG (ours)</div>
-    <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-sm">
-      <div class="font-semibold text-teal-700">Region</div>
-      <div>Local (latent-conditioned)</div>
-      <div class="font-semibold text-teal-700">Samples</div>
-      <div>Even a few stay informative</div>
-      <div class="font-semibold text-teal-700">Supervision</div>
-      <div><strong>Dense</strong></div>
-    </div>
-  </div>
-</div>
-
-</ColorBox>
-
-We first illustrate this effect in a controlled multi-goal task then show the same pattern in high-dimensional continuous control tasks in the Result section.
-
-{/* ### Multi-goal Environment
-
-<Wide>
-  <Figure>
-  <Picture slot="figure" src={multigoalenv} alt="Comparison of global and local importance sampling in a multi-goal environment" />
-  <Fragment slot="caption">This didactic task illustrates what happens when the IS budget is very small, as in high-dimensional action spaces. When $N \le 8$, global-IS baselines fail to capture the target modes, while FLAG captures the optimal multi-modal behavior even with $N = 2$ samples.</Fragment>
-  </Figure>
-</Wide>
-
-### High-dimensional Continuous Control Environment
-<Wide>
-  <Figure>
-  <Picture slot="figure" src={highdimenv} alt="Comparison of global and local importance sampling in a high-dimensional continuous control environment" />
-  <Fragment slot="caption">In real high-dimensional control tasks, global-IS methods often rely on batch action sampling, drawing many candidate actions to compensate for poor proposal-target overlap. Even with this extra sampling, they remain less efficient and lower-performing than FLAG.</Fragment>
-  </Figure>
-</Wide> */}
 
 ### Multi-goal Environment (Didactic Experiment)
 
@@ -183,27 +138,16 @@ We first illustrate this effect in a controlled multi-goal task then show the sa
   <Fragment slot="caption">The multi-goal task isolates the small-sample regime: global-IS baselines fail when $N \le 8$, while FLAG recovers the optimal multi-modal behavior with only $N = 2$ samples.</Fragment>
 </Figure>
 
-{/* ### High-dimensional Continuous Control Environment
+### Main Result: Scaling to High-dimensional Control
 
-<Figure>
-  <Picture slot="figure" src={highdimenv} alt="Comparison of global and local importance sampling in a high-dimensional continuous control environment" />
-  <Fragment slot="caption">The same issue appears in high-dimensional control. Global-IS methods compensate with batch action sampling, but even with many candidates they remain less efficient and lower-performing than FLAG.</Fragment>
-</Figure> */}
+<ResultZoomImage
+  id="hero-q1-figure3"
+  src={q1Figure3Thumb}
+  detailSrc={q1Figure3Detail}
+  alt="Figure 3 comparing performance and GPU hours for global and local proposal sampling across MuJoCo, DMC Dog, and MyoSuite"
+/>
 
-{/* ### How to Make Local IS Framework Work?
-
-<ColorBox color="#0F766E">
-  <Fragment slot="title">
-    **FLAG realizes local IS through EM on the $z$-MDP.**
-  </Fragment>
-
-The $z$-MDP augments the original MDP with a latent variable while preserving marginal and
-$Q$-function consistency. On this augmented MDP, we define a tractable proxy MaxEnt-RL objective
-whose EM-style optimization induces a localized proposal-target pair conditioned on $z$. FLAG
-instantiates this procedure, enabling the local IS within the localized region of the action space
-and making MaxEnt-RL scalable.
-
-</ColorBox> */}
+<p class="mt-2 text-sm italic text-zinc-500 dark:text-zinc-400">FLAG sustains the highest return at low GPU cost as action dimensionality scales (MuJoCo → DMC Dog → MyoSuite). Detailed comparisons across budgets and critic settings are in <a href="#Q1">Experimental Results · Q1</a>.</p>
 
 ## Method
 
@@ -410,7 +354,7 @@ We present the results around the three questions used in Section 5 of the paper
 />
 
 <div class="not-prose mb-5 rounded-lg border border-teal-200 bg-teal-50 px-4 py-3 text-sm leading-relaxed text-teal-950 dark:border-emerald-500/50 dark:bg-emerald-900/40 dark:text-emerald-100">
-  <div class="mb-1.5 text-xs font-bold uppercase tracking-wider text-teal-700 dark:text-emerald-300">Term used in experiments</div>
+  <div class="mb-1.5 text-xs font-bold uppercase tracking-wider text-teal-700 dark:text-emerald-300">Term</div>
   <p><strong class="font-bold text-teal-800 dark:text-emerald-200">best-of-P:</strong> when sampling actions from the policy (e.g., during rollout and policy update), <em>P</em> candidate actions are drawn and the one with the highest Q-value is selected.</p>
 </div>
 

@@ -1,0 +1,29 @@
+---
+/**
+ * Renders its children only in presentation mode.
+ *
+ * Use this to add narration text, arrows, annotations, or any
+ * "video-only" detail that shouldn't clutter the normal HTML page.
+ *
+ *   <PresentationOnly>
+ *     <div class="...">This callout only shows in the recording.</div>
+ *   </PresentationOnly>
+ *
+ * Default: rendered as a <div>. Pass `as="span"` for inline contexts.
+ *
+ * Behavior is implemented in src/styles/presentation.css via
+ * `[data-present-only]` / `body[data-present] [data-present-only]`.
+ */
+
+interface Props {
+  as?: "div" | "span";
+  class?: string;
+}
+
+const { as = "div", class: className }: Props = Astro.props;
+const Tag = as;
+---
+
+<Tag data-present-only class={className}>
+  <slot />
+</Tag>

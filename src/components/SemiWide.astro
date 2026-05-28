@@ -1,0 +1,12 @@
+---
+/**
+ * Slightly wider than the prose column (`--maximum-text-width`),
+ * but narrower than `<Wide>` (`100rem` breakout).
+ */
+---
+
+<div
+  class="w-full max-w-[min(var(--maximum-semi-wide-width),100cqw-2*var(--minimum-inline-margin))] mx-[calc((min(var(--maximum-semi-wide-width),100cqw-2*var(--minimum-inline-margin))-var(--actual-text-width))/2*-1)]"
+>
+  <slot />
+</div>

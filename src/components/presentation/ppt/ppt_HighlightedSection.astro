@@ -1,0 +1,30 @@
+---
+/**
+ * Slide-friendly highlight band (presentation deck only).
+ * Edit freely without affecting the project page HighlightedSection.
+ */
+interface Props {
+  color?: string;
+}
+
+const { color } = Astro.props;
+---
+
+<div
+  class:list={[
+    "ppt-highlight not-prose w-full rounded-2xl px-8 py-6",
+    !color && "bg-zinc-100 dark:bg-zinc-800/90",
+    color && "text-white",
+  ]}
+  style={color ? { backgroundColor: color } : undefined}
+>
+  <div
+    class:list={[
+      "[&>:first-child]:mt-0 [&>:last-child]:mb-0",
+      color &&
+        "[&_a]:text-blue-200 [&_a]:hover:text-white [&_strong]:text-white",
+    ]}
+  >
+    <slot />
+  </div>
+</div>

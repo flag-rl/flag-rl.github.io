@@ -1,0 +1,305 @@
+---
+title: FLAG — Presentation
+theme: light
+favicon: flag2.svg
+description: Presentation deck for FLAG
+---
+
+import Figure from "./components/Figure.astro";
+import Picture from "./components/Picture.astro";
+import Presentation_eqbox from "./components/presentation/Presentation_eqbox.astro";
+import Presentation_eqnote from "./components/presentation/Presentation_eqnote.astro";
+import ProofRoadmap from "./components/ProofRoadmap.astro";
+import ResultZoomImage from "./components/ResultZoomImage.astro";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/starwind/tabs";
+
+import PresentationSection from "./components/presentation/PresentationSection.astro";
+import PresentationStep from "./components/presentation/PresentationStep.astro";
+import PresentationCallout from "./components/presentation/PresentationCallout.astro";
+import PresentationVideo from "./components/presentation/PresentationVideo.astro";
+
+import ppt_HighlightedSection from "./components/presentation/ppt/ppt_HighlightedSection.astro";
+import ppt_QCard from "./components/presentation/ppt/ppt_QCard.astro";
+import ppt_IdeaTabs from "./components/presentation/ppt/ppt_IdeaTabs.astro";
+import ppt_ResultQCard from "./components/presentation/ppt/ppt_ResultQCard.astro";
+
+import outside from "./assets/outside.mp4";
+import q1Figure3Thumb from "./assets/q1_figure3_thumb.png";
+import q1Figure3Detail from "./assets/q1_figure3_detail.png";
+import q1Figure4WithoutCrossQThumb from "./assets/q1_figure4_without_crossq_thumb.png";
+import q1Figure4WithoutCrossQDetail from "./assets/q1_figure4_without_crossq_detail.png";
+import q1Table1Thumb from "./assets/q1_table1_thumb.png";
+import q1Table1Detail from "./assets/q1_table1_detail.png";
+
+{/* Deck-only content — edit freely. Project page lives in src/paper.mdx. */}
+
+<PresentationSection id="intro" holdAfter={1500} tabHold={0}>
+  <PresentationStep static effect="fade-up" hold={3000}>
+    <div class="not-prose mx-auto flex max-w-4xl flex-col items-center justify-center gap-8 text-center">
+      <h1 class="flex flex-col items-center gap-3 text-balance font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+        <span class="text-5xl text-teal-700 sm:text-6xl lg:text-7xl dark:text-teal-400">FLAG</span>
+        <span class="text-3xl leading-snug font-semibold sm:text-4xl lg:text-5xl">
+           <strong class="font-bold text-teal-700 dark:text-teal-400">F</strong>low Policy MaxEnt-RL by
+        </span>
+        <span class="text-3xl leading-snug font-semibold sm:text-4xl lg:text-5xl">
+          <strong class="font-bold text-teal-700 dark:text-teal-400">L</strong>atent{" "}
+          <strong class="font-bold text-teal-700 dark:text-teal-400">A</strong>ugmented{" "}
+          <strong class="font-bold text-teal-700 dark:text-teal-400">G</strong>uidance
+        </span>
+      </h1>
+    </div>
+  </PresentationStep>
+</PresentationSection>
+
+{/* ══════════════════════════════════════════════════════════
+    Section A — Expressive Policy × Online RL → BPTT
+    ══════════════════════════════════════════════════════════ */}
+<PresentationSection id="motivation-bptt" holdAfter={800} tabHold={0}>
+
+  <PresentationStep static hold={1000}>
+    <div class="not-prose mb-2">
+      <h2 class="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl dark:text-zinc-50">
+        Expressive Policy in Online RL
+      </h2>
+      <p class="mt-1 text-base text-zinc-500 dark:text-zinc-400">
+        Expressive flow/diffusion policies can capture near-optimal multi-modal behaviors while modeling complex state-action correlations. 
+      </p>
+    </div>
+  </PresentationStep>
+
+  <PresentationStep effect="fade-up" hold={2200}>
+    <div class="not-prose space-y-1">
+      <Presentation_eqbox label="SAC — Actor-Critic Objective">
+        $$\mathcal{J}(\theta) = \mathbb{E}_{s,\,\epsilon}\bigl[Q(s,a) - \alpha\log\pi_\theta(a\mid s)\bigr]$$
+      </Presentation_eqbox>
+      <Presentation_eqnote tag="BPTT" tagTone="red">
+        $a = \pi_\theta(a\mid s, \epsilon)$ · $\frac{\partial a}{\partial \theta}$ requires backprop through all ODE steps
+      </Presentation_eqnote>
+    </div>
+  </PresentationStep>
+
+  <PresentationStep effect="fade-up" hold={2200}>
+    <div class="not-prose mt-2 space-y-1">
+      <Presentation_eqbox label="PPO — Policy Gradient">
+        $$\mathcal{J}(\theta) = \mathbb{E}_t\bigl[\min\bigl(r_t(\theta)\hat{A}_t,\;\mathrm{clip}(r_t,1{-}\varepsilon,1{+}\varepsilon)\hat{A}_t\bigr)\bigr], \qquad r_t(\theta) = \frac{\pi_\theta(a_t\mid s_t)}{\pi_{\theta_{k}}(a_t\mid s_t)}$$
+      </Presentation_eqbox>
+      <Presentation_eqnote tag="BPTT" tagTone="red">
+        $\log \pi_\theta(a\mid s)$ · change-of-variables — $\frac{\partial \log \pi_\theta(a\mid s)}{\partial \theta}$ requires backprop through ODE Jacobian
+      </Presentation_eqnote>
+    </div>
+  </PresentationStep>
+
+  <PresentationStep effect="fade" hold={800}>
+    <PresentationCallout tone="red" label="Problem">
+      ❌ Both gradient-based approaches require BPTT through ODE generation — numerically unstable and memory inefficient.
+    </PresentationCallout>
+  </PresentationStep>
+
+</PresentationSection>
+
+{/* ══════════════════════════════════════════════════════════
+    Section B — MPO: Target Distribution + Supervised Learning
+    ══════════════════════════════════════════════════════════ */}
+<PresentationSection id="motivation-mpo" holdAfter={800} tabHold={0}>
+
+  <PresentationStep static>
+    <div class="not-prose mb-2">
+      <h2 class="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl dark:text-zinc-50">
+        EM-style Policy Optimization
+      </h2>
+      <p class="mt-1 text-base text-zinc-500 dark:text-zinc-400">
+        MPO solves Online RL via Variational Inference, constructing the{" "}
+        <strong class="text-zinc-700 dark:text-zinc-300">Target Distribution</strong> in closed form.
+      </p>
+    </div>
+  </PresentationStep>
+
+  <PresentationStep effect="fade-up" hold={2000}>
+    <Presentation_eqbox label="MaxEnt-RL Objective">
+      $$\pi^\star = \arg\max_\pi\;\mathbb{E}_{\tau\sim p_\pi}\!\left[\sum_{t=0}^\infty\gamma^t\bigl(r(s_t,a_t)-\alpha\log\pi(a_t\mid s_t)\bigr)\right]$$
+    </Presentation_eqbox>
+  </PresentationStep>
+
+  <PresentationStep effect="fade-up" hold={2200}>
+    <div class="not-prose mt-2 grid gap-4 sm:grid-cols-2">
+      <Presentation_eqbox label="MaxEnt Target">
+        $$q^\star(a\mid s)\propto\exp\!\left(\frac{Q(s,a)}{\alpha}\right)$$
+      </Presentation_eqbox>
+      <Presentation_eqbox label="Mirror Descent Target">
+        $$q_k(a\mid s)\propto\pi_k(a\mid s)\exp\!\left(\frac{Q^{\pi_k}(s,a)}{\lambda_k}\right)$$
+      </Presentation_eqbox>
+    </div>
+    <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Closed-form targets — constructed from the current policy π_k and Q-function.</p>
+  </PresentationStep>
+
+  <PresentationStep effect="fade-up" hold={2000}>
+    <div class="not-prose mt-2 space-y-1">
+      <Presentation_eqbox label="M-step — Policy Update">
+        $$\theta_{k+1}\in\arg\max_\theta\;\mathbb{E}_{s\sim\rho_{\pi_k}}\,\mathbb{E}_{a\sim q_k(\cdot\mid s)}\!\left[\log\pi_\theta(a\mid s)\right]$$
+      </Presentation_eqbox>
+      <Presentation_eqnote tag="No BPTT" tagTone="teal">
+        Sample from target → KL minimization = supervised learning on π_θ
+      </Presentation_eqnote>
+    </div>
+  </PresentationStep>
+
+</PresentationSection>
+
+{/* ══════════════════════════════════════════════════════════
+    Section C — Target Intractable → Importance Sampling
+    ══════════════════════════════════════════════════════════ */}
+<PresentationSection id="motivation-is" holdAfter={600} tabHold={0}>
+
+  <PresentationStep static>
+    <div class="not-prose mb-2">
+      <h2 class="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl dark:text-zinc-50">
+        But — Target is Intractable to Sample
+      </h2>
+      <p class="mt-1 text-base text-zinc-500 dark:text-zinc-400">
+        The target distributions are in closed form — but the normalization constant is intractable,
+        making direct sampling impossible.
+      </p>
+    </div>
+  </PresentationStep>
+
+  <PresentationStep effect="fade-up" hold={2000}>
+    <div class="not-prose grid gap-2 sm:grid-cols-2">
+      <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800/50 dark:bg-amber-900/20">
+        <p class="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">MaxEnt Target</p>
+        <p class="mt-1 font-mono text-sm text-amber-900 dark:text-amber-200">q*(a|s) ∝ exp(Q / α)</p>
+        <p class="mt-2 text-xs text-amber-700 dark:text-amber-300">⚠️ Q is a learned critic — partition function intractable</p>
+      </div>
+      <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800/50 dark:bg-amber-900/20">
+        <p class="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">Mirror Descent Target</p>
+        <p class="mt-1 font-mono text-sm text-amber-900 dark:text-amber-200">q_k ∝ π_k · exp(Q / λ_k)</p>
+        <p class="mt-2 text-xs text-amber-700 dark:text-amber-300">⚠️ Unnormalized — same issue</p>
+      </div>
+    </div>
+  </PresentationStep>
+
+  <PresentationStep effect="fade-up" hold={2000}>
+    <div class="not-prose mt-2 space-y-1">
+      <Presentation_eqbox label="Solution — Importance Sampling">
+        $$\theta_{k+1}\approx\arg\max_\theta\;\frac{1}{N}\sum_{i=1}^{N}w^{(i)}\log\pi_\theta(a^{(i)}\mid s),\quad a^{(i)}\sim\pi_k(\cdot\mid s)$$
+        $$w^{(i)}\propto\exp\!\left(\frac{Q(s,a^{(i)})}{\lambda_k}\right)$$
+      </Presentation_eqbox>
+      <Presentation_eqnote>
+        Sample from π_k, reweight by exp(Q / λ_k) — no direct sampling needed
+      </Presentation_eqnote>
+    </div>
+  </PresentationStep>
+
+  <PresentationStep effect="fade" hold={600}>
+    <PresentationCallout tone="zinc">
+      Prior methods apply this <strong>Global IS</strong> — sampling from the full action space. But how well does it work at scale? 👇
+    </PresentationCallout>
+  </PresentationStep>
+
+</PresentationSection>
+
+{/* ══════════ Video ══════════ */}
+<PresentationSection id="ig-vs-local-video" holdAfter={600} tabHold={0}>
+  <PresentationStep effect="fade" hold={400}>
+    <div class="my-4">
+      <PresentationVideo src={outside} awaitEnd />
+      <p class="mt-2 text-center text-sm italic text-zinc-500 dark:text-zinc-400">
+        Global IS (left) vs. local IS (right) — proposal/target overlap.
+      </p>
+    </div>
+  </PresentationStep>
+</PresentationSection>
+
+<PresentationSection id="present-q1" tabHold={3500} holdAfter={1200}>
+  <ppt_QCard number="Q1" title="How do we construct local IS, and is it consistent with the original MDP?">
+
+    <Fragment slot="challenge">
+    For local IS to be principled — not just a trick — two conditions must hold:
+
+    - **Localization.** The proposal and target distributions must share a *region* indexed by a latent $z$.
+    - **Consistency.** Optimizing inside that local region must be the *same* optimization problem as optimizing the RL objective in the original MDP.
+
+    Without Consistency, local IS optimizes the wrong objective and any gains are illusory.
+    </Fragment>
+
+    <Fragment slot="solution">
+    <ppt_IdeaTabs labels={["Policy Parameterization", "Latent-Augmented MDP", "Consistency"]}>
+      <Fragment slot="tab-0">
+        <Figure>
+          <Picture slot="figure" src="../assets/policy_parameterization.pdf" alt="Flow map transports latent z to multi-modal anchor actions" />
+          <Fragment slot="caption">The deterministic flow map $T_\theta(s, z)$ transports a latent prior $z \sim p_z$ to multi-modal anchor actions.</Fragment>
+        </Figure>
+      </Fragment>
+      <Fragment slot="tab-1">
+        <Figure>
+          <Picture slot="figure" src="../assets/zMDP.pdf" alt="Graphical model of the latent-augmented MDP" />
+          <Fragment slot="caption">The **z-MDP** augments each state with the latent $z$.</Fragment>
+        </Figure>
+      </Fragment>
+      <Fragment slot="tab-2">
+        The z-MDP preserves both **state–action marginals** and the **Q-function**.
+
+        <div class="not-prose my-3 grid gap-4 md:grid-cols-2">
+          <Presentation_eqbox label="Corollary 4.2 — Marginal consistency">
+            $$
+            \rho_\pi(s, a) = \int \hat\rho_{\hat\pi}(s, z, a)\,dz
+            $$
+          </Presentation_eqbox>
+          <Presentation_eqbox label="Corollary 4.4 — Q-function consistency">
+            $$
+            Q^{\hat\pi}(\hat s, a) = Q^{\pi}(s, a), \quad \forall\, s, z, a
+            $$
+          </Presentation_eqbox>
+        </div>
+      </Fragment>
+    </ppt_IdeaTabs>
+    </Fragment>
+
+    <Fragment slot="bottom-line">
+    We construct the **z-MDP**, and prove that optimizing the RL objective on the z-MDP is **equivalent** to optimizing it on the original MDP (**Consistency**).
+    </Fragment>
+
+  </ppt_QCard>
+</PresentationSection>
+
+<PresentationSection id="present-result-q1" tabHold={3000} holdAfter={1200}>
+  <ppt_ResultQCard
+    number="Q1"
+    question="Does FLAG scale to high-dimensional action spaces under limited sample budgets?"
+    answer="FLAG is Scalable to High-dimensional Action Spaces and Robust to Sample Budget"
+  >
+    <div class="flex flex-col gap-3">
+      <details class="group/sub rounded-lg border border-zinc-200 bg-zinc-50 open:shadow-sm dark:border-zinc-700 dark:bg-zinc-800/60" open>
+        <summary class="flex cursor-pointer list-none items-center gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
+          <span class="inline-flex shrink-0 rounded-full bg-teal-700 px-3 py-1 text-xs font-bold text-white">Q1.1</span>
+          <span class="flex-1 text-sm font-semibold md:text-base">Is FLAG scalable to high-dimensional action spaces?</span>
+        </summary>
+        <div class="border-t border-zinc-200 px-4 pb-4 pt-3 dark:border-zinc-700">
+          <div data-present-tab-group="starwind">
+          <Tabs defaultValue="q1-scale-with-crossq">
+            <TabsList class="flex flex-wrap gap-1 rounded-full bg-zinc-100 p-1 dark:bg-zinc-800">
+              <TabsTrigger value="q1-scale-with-crossq" class="px-3 py-1 text-xs font-semibold">With CrossQ</TabsTrigger>
+              <TabsTrigger value="q1-scale-without-crossq" class="px-3 py-1 text-xs font-semibold">Without CrossQ</TabsTrigger>
+            </TabsList>
+            <TabsContent value="q1-scale-with-crossq" class="mt-3">
+              <ResultZoomImage id="ppt-q1-figure3" src={q1Figure3Thumb} detailSrc={q1Figure3Detail} alt="Figure 3" />
+            </TabsContent>
+            <TabsContent value="q1-scale-without-crossq" class="mt-3">
+              <ResultZoomImage id="ppt-q1-figure4" src={q1Figure4WithoutCrossQThumb} detailSrc={q1Figure4WithoutCrossQDetail} alt="Figure 4" />
+            </TabsContent>
+          </Tabs>
+          </div>
+        </div>
+      </details>
+
+      <details class="group/sub rounded-lg border border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800/60" open>
+        <summary class="flex cursor-pointer list-none items-center gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
+          <span class="inline-flex shrink-0 rounded-full bg-teal-700 px-3 py-1 text-xs font-bold text-white">Q1.2</span>
+          <span class="flex-1 text-sm font-semibold md:text-base">Is FLAG robust to the sample budget?</span>
+        </summary>
+        <div class="border-t border-zinc-200 px-4 pb-4 pt-3 dark:border-zinc-700">
+          <ResultZoomImage id="ppt-q1-table1" src={q1Table1Thumb} detailSrc={q1Table1Detail} alt="Table 1" />
+        </div>
+      </details>
+    </div>
+  </ppt_ResultQCard>
+</PresentationSection>

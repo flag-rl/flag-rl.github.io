@@ -1,0 +1,536 @@
+---
+/**
+ * PPT-style presentation controller.
+ *
+ * ?mode=present | ?present=1
+ *
+ * Manual (default):
+ *   → / Space     — reveal next build, then next slide
+ *   ←             — previous slide
+ *   Play          — autoplay (scroll-free slide deck)
+ *
+ *   F             — fullscreen
+ *   R             — restart
+ *   Esc           — exit presentation mode
+ */
+---
+
+<div
+  id="presentation-overlay"
+  class="pointer-events-none fixed inset-x-0 top-0 z-[10000] hidden flex-col items-stretch gap-2 px-4 py-3"
+  aria-hidden="true"
+>
+  <div
+    id="presentation-controls"
+    class="pointer-events-auto mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-2 rounded-full border border-zinc-300/70 bg-white/90 px-3 py-1.5 text-xs font-medium text-zinc-700 shadow-lg backdrop-blur-sm dark:border-zinc-600/70 dark:bg-zinc-800/90 dark:text-zinc-200"
+  >
+    <button
+      type="button"
+      id="presentation-prev"
+      class="rounded-full px-2.5 py-1 transition hover:bg-zinc-200 dark:hover:bg-zinc-700"
+      aria-label="Previous slide"
+    >← Prev</button>
+    <button
+      type="button"
+      id="presentation-next"
+      class="rounded-full px-2.5 py-1 transition hover:bg-zinc-200 dark:hover:bg-zinc-700"
+      aria-label="Next slide or reveal"
+    >Next →</button>
+    <span class="hidden h-4 w-px bg-zinc-300 sm:inline dark:bg-zinc-600" aria-hidden="true"
+    ></span>
+    <button
+      type="button"
+      id="presentation-play-pause"
+      class="rounded-full px-2.5 py-1 transition hover:bg-zinc-200 dark:hover:bg-zinc-700"
+      aria-label="Autoplay"
+    >▶ Autoplay</button>
+    <button
+      type="button"
+      id="presentation-fullscreen"
+      class="rounded-full px-2.5 py-1 transition hover:bg-zinc-200 dark:hover:bg-zinc-700"
+      aria-label="Fullscreen"
+    >⛶</button>
+    <button
+      type="button"
+      id="presentation-restart"
+      class="rounded-full px-2.5 py-1 transition hover:bg-zinc-200 dark:hover:bg-zinc-700"
+      aria-label="Restart"
+    >↺</button>
+    <span id="presentation-progress" class="tabular-nums opacity-75">0 / 0</span>
+    <span
+      id="presentation-slide-label"
+      class="hidden max-w-[12rem] truncate opacity-60 sm:inline"
+      title=""
+    ></span>
+    <button
+      type="button"
+      id="presentation-exit"
+      class="rounded-full px-2.5 py-1 transition hover:bg-zinc-200 dark:hover:bg-zinc-700"
+      aria-label="Exit presentation mode"
+    >Exit</button>
+  </div>
+  <p
+    id="presentation-hint"
+    class="pointer-events-none text-center text-[10px] text-zinc-500 dark:text-zinc-400"
+  >
+    ← → navigate · Space next · F fullscreen · Esc exit
+  </p>
+</div>
+
+<script>
+  import { isPresentMode } from "../../lib/presentation";
+
+  if (isPresentMode()) {
+    bootPresentation();
+  }
+
+  function bootPresentation() {
+    document.documentElement.removeAttribute("data-present-pending");
+    document.body.setAttribute("data-present", "true");
+
+    const overlay = document.getElementById("presentation-overlay");
+    if (overlay) {
+      overlay.classList.remove("hidden");
+      overlay.classList.add("flex");
+      overlay.setAttribute("aria-hidden", "false");
+    }
+
+    let sections: HTMLElement[] = [];
+    let slideIndex = 0;
+    let autoplayRunning = false;
+    let autoplayAbort = false;
+    let paused = false;
+    let pausePromise: Promise<void> | null = null;
+    let pauseResolver: (() => void) | null = null;
+
+    const playBtn = document.getElementById(
+      "presentation-play-pause",
+    ) as HTMLButtonElement | null;
+    const prevBtn = document.getElementById(
+      "presentation-prev",
+    ) as HTMLButtonElement | null;
+    const nextBtn = document.getElementById(
+      "presentation-next",
+    ) as HTMLButtonElement | null;
+    const restartBtn = document.getElementById(
+      "presentation-restart",
+    ) as HTMLButtonElement | null;
+    const exitBtn = document.getElementById(
+      "presentation-exit",
+    ) as HTMLButtonElement | null;
+    const fullscreenBtn = document.getElementById(
+      "presentation-fullscreen",
+    ) as HTMLButtonElement | null;
+    const progressEl = document.getElementById("presentation-progress");
+    const labelEl = document.getElementById("presentation-slide-label");
+
+    function getNum(el: Element, attr: string, fallback: number): number {
+      const raw = el.getAttribute(attr);
+      const n = raw == null ? NaN : Number(raw);
+      return Number.isFinite(n) ? n : fallback;
+    }
+
+    function isInsideHiddenPanel(el: Element): boolean {
+      let n: Element | null = el.parentElement;
+      while (n) {
+        if (n.hasAttribute("data-present-section")) return false;
+        if (n.classList?.contains("hidden")) return true;
+        if ((n as HTMLElement).hidden) return true;
+        n = n.parentElement;
+      }
+      return false;
+    }
+
+    function refreshSections() {
+      sections = Array.from(
+        document.querySelectorAll<HTMLElement>(
+          "[data-present-section]:not([data-present-skip='true'])",
+        ),
+      );
+      updateProgress();
+    }
+
+    function stepsForSection(section: HTMLElement): HTMLElement[] {
+      return Array.from(
+        section.querySelectorAll<HTMLElement>("[data-present-step]"),
+      ).filter((s) => !isInsideHiddenPanel(s));
+    }
+
+    function resetStepsIn(section: HTMLElement) {
+      section.querySelectorAll<HTMLElement>("[data-present-step]").forEach((s) => {
+        if (s.dataset.presentStatic === "true") {
+          s.classList.add("is-revealed");
+        } else {
+          s.classList.remove("is-revealed");
+        }
+      });
+    }
+
+    function hideAllSteps() {
+      document.querySelectorAll<HTMLElement>("[data-present-step]").forEach((s) => {
+        if (s.dataset.presentStatic === "true") {
+          s.classList.add("is-revealed");
+        } else {
+          s.classList.remove("is-revealed");
+        }
+      });
+    }
+
+    function reveal(step: HTMLElement) {
+      step.classList.add("is-revealed");
+    }
+
+    function openAllDetails() {
+      document
+        .querySelectorAll<HTMLDetailsElement>(
+          "details:not([data-present-keep-closed])",
+        )
+        .forEach((d) => {
+          d.open = true;
+        });
+    }
+
+    function updateProgress() {
+      if (!progressEl) return;
+      const total = sections.length;
+      const current = total === 0 ? 0 : slideIndex + 1;
+      progressEl.textContent = `${current} / ${total}`;
+    }
+
+    function updateSlideLabel() {
+      if (!labelEl || sections.length === 0) return;
+      const section = sections[slideIndex];
+      const title =
+        section.dataset.presentTitle ||
+        section.id ||
+        `Slide ${slideIndex + 1}`;
+      labelEl.textContent = title;
+      labelEl.title = title;
+    }
+
+    function setActiveSlide(index: number) {
+      if (sections.length === 0) return;
+      slideIndex = Math.max(0, Math.min(index, sections.length - 1));
+      sections.forEach((s, i) => {
+        if (i === slideIndex) {
+          s.setAttribute("data-present-active", "true");
+        } else {
+          s.removeAttribute("data-present-active");
+        }
+      });
+      updateProgress();
+      updateSlideLabel();
+      prevBtn && (prevBtn.disabled = slideIndex <= 0);
+      nextBtn &&
+        (nextBtn.disabled =
+          slideIndex >= sections.length - 1 &&
+          stepsForSection(sections[slideIndex]).every((s) =>
+            s.classList.contains("is-revealed"),
+          ));
+    }
+
+    function goToSlide(index: number, resetSteps = true) {
+      if (sections.length === 0) return;
+      const target = Math.max(0, Math.min(index, sections.length - 1));
+      if (resetSteps) {
+        sections.forEach((s) => resetStepsIn(s));
+      }
+      setActiveSlide(target);
+    }
+
+    function revealNextStepInCurrentSlide(): boolean {
+      const section = sections[slideIndex];
+      if (!section) return false;
+      const steps = stepsForSection(section);
+      const next = steps.find((s) => !s.classList.contains("is-revealed"));
+      if (!next) return false;
+      reveal(next);
+      return true;
+    }
+
+    function advance() {
+      if (revealNextStepInCurrentSlide()) {
+        updateProgress();
+        return;
+      }
+      if (slideIndex < sections.length - 1) {
+        goToSlide(slideIndex + 1);
+        revealNextStepInCurrentSlide();
+      }
+    }
+
+    function retreat() {
+      if (slideIndex > 0) {
+        goToSlide(slideIndex - 1);
+      }
+    }
+
+    function pause() {
+      if (pausePromise) return;
+      paused = true;
+      pausePromise = new Promise((r) => {
+        pauseResolver = r;
+      });
+      updateAutoplayLabel();
+    }
+
+    function resume() {
+      paused = false;
+      if (pauseResolver) {
+        pauseResolver();
+        pauseResolver = null;
+        pausePromise = null;
+      }
+      updateAutoplayLabel();
+    }
+
+    async function awaitResume() {
+      while (pausePromise) await pausePromise;
+    }
+
+    async function sleep(ms: number) {
+      const chunk = 80;
+      const start = performance.now();
+      while (performance.now() - start < ms) {
+        if (autoplayAbort) return;
+        await awaitResume();
+        const remaining = ms - (performance.now() - start);
+        await new Promise((r) => setTimeout(r, Math.min(chunk, remaining)));
+      }
+    }
+
+    function tabTriggersFor(group: HTMLElement): HTMLButtonElement[] {
+      const selectors = [
+        ".ppt-qcard-tab",
+        ".qcard-tab",
+        ".ppt-idea-tab",
+        ".idea-tab",
+        ":scope > [data-tabs-list] [data-tabs-trigger]",
+        ":scope [data-tabs-list] [data-tabs-trigger]",
+      ];
+      for (const sel of selectors) {
+        const found = Array.from(
+          group.querySelectorAll<HTMLButtonElement>(sel),
+        );
+        if (found.length) return found;
+      }
+      return Array.from(
+        group.querySelectorAll<HTMLButtonElement>("[data-present-tab-trigger]"),
+      );
+    }
+
+    function activeTabIndex(triggers: HTMLButtonElement[]): number {
+      const idx = triggers.findIndex(
+        (t) =>
+          t.dataset.active === "true" ||
+          t.getAttribute("data-state") === "active" ||
+          t.getAttribute("aria-selected") === "true",
+      );
+      return idx >= 0 ? idx : 0;
+    }
+
+    async function runAutoplaySection(section: HTMLElement) {
+      const steps = stepsForSection(section);
+      for (const step of steps) {
+        if (autoplayAbort) return;
+        const delay = getNum(step, "data-present-delay", 0);
+        const hold = getNum(step, "data-present-hold", 1200);
+        if (delay > 0) await sleep(delay);
+        reveal(step);
+        if (hold > 0) await sleep(hold);
+      }
+
+      const tabHold = getNum(section, "data-present-tab-hold", 3000);
+      const tabGroups = Array.from(
+        section.querySelectorAll<HTMLElement>("[data-present-tab-group]"),
+      );
+      for (const group of tabGroups) {
+        if (autoplayAbort) return;
+        const triggers = tabTriggersFor(group);
+        if (triggers.length < 2) continue;
+        const start = activeTabIndex(triggers);
+        await sleep(tabHold);
+        for (let i = 1; i < triggers.length; i++) {
+          if (autoplayAbort) return;
+          triggers[(start + i) % triggers.length].click();
+          await sleep(250);
+          const panelSteps = stepsForSection(group);
+          for (const ps of panelSteps) {
+            if (ps.classList.contains("is-revealed")) continue;
+            const delay = getNum(ps, "data-present-delay", 0);
+            const hold = getNum(ps, "data-present-hold", 800);
+            if (delay > 0) await sleep(delay);
+            reveal(ps);
+            if (hold > 0) await sleep(hold);
+          }
+          await sleep(tabHold);
+        }
+      }
+
+      const video = section.querySelector<HTMLVideoElement>(
+        "[data-present-video]",
+      );
+      if (video && !autoplayAbort) {
+        if (video.dataset.presentRestart !== "false") {
+          try {
+            video.currentTime = 0;
+          } catch {
+            /* ignore */
+          }
+        }
+        if (video.dataset.presentUnmute === "true") {
+          video.muted = false;
+        }
+        try {
+          await video.play();
+        } catch {
+          /* ignore */
+        }
+        if (video.dataset.presentAwaitEnd !== "false") {
+          await new Promise<void>((resolve) => {
+            const onEnd = () => {
+              video.removeEventListener("ended", onEnd);
+              resolve();
+            };
+            video.addEventListener("ended", onEnd, { once: true });
+            const poll = window.setInterval(() => {
+              if (autoplayAbort) {
+                window.clearInterval(poll);
+                video.removeEventListener("ended", onEnd);
+                resolve();
+              }
+            }, 120);
+          });
+        }
+      }
+
+      if (!autoplayAbort) {
+        const holdAfter = getNum(section, "data-present-hold-after", 1500);
+        await sleep(holdAfter);
+      }
+    }
+
+    async function runAutoplay(fromIdx = 0) {
+      autoplayRunning = true;
+      autoplayAbort = false;
+      updateAutoplayLabel();
+
+      for (let i = fromIdx; i < sections.length; i++) {
+        if (autoplayAbort) break;
+        goToSlide(i, true);
+        await runAutoplaySection(sections[i]);
+        await awaitResume();
+      }
+
+      autoplayRunning = false;
+      updateAutoplayLabel(true);
+    }
+
+    function stopAutoplay() {
+      autoplayAbort = true;
+      autoplayRunning = false;
+      if (paused) resume();
+      updateAutoplayLabel();
+    }
+
+    function updateAutoplayLabel(done = false) {
+      if (!playBtn) return;
+      if (done) {
+        playBtn.textContent = "✓ Done";
+        return;
+      }
+      if (autoplayRunning) {
+        playBtn.textContent = paused ? "▶ Resume" : "❚❚ Pause";
+        return;
+      }
+      playBtn.textContent = "▶ Autoplay";
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen?.().catch(() => {});
+      } else {
+        document.exitFullscreen?.().catch(() => {});
+      }
+    }
+
+
+    function initialPass() {
+      hideAllSteps();
+      openAllDetails();
+      refreshSections();
+      goToSlide(0);
+    }
+
+    prevBtn?.addEventListener("click", () => {
+      stopAutoplay();
+      retreat();
+    });
+
+    nextBtn?.addEventListener("click", () => {
+      stopAutoplay();
+      advance();
+    });
+
+    playBtn?.addEventListener("click", () => {
+      if (autoplayRunning) {
+        if (paused) resume();
+        else pause();
+        return;
+      }
+      runAutoplay(slideIndex).catch((err) =>
+        console.error("[presentation]", err),
+      );
+    });
+
+    restartBtn?.addEventListener("click", () => {
+      stopAutoplay();
+      window.setTimeout(() => {
+        goToSlide(0);
+        hideAllSteps();
+        goToSlide(0);
+      }, 100);
+    });
+
+    exitBtn?.addEventListener("click", () => {
+      const base = import.meta.env.BASE_URL;
+      const prefix = base.endsWith("/") ? base : `${base}/`;
+      window.location.href = prefix;
+    });
+    fullscreenBtn?.addEventListener("click", toggleFullscreen);
+
+    document.addEventListener("keydown", (e) => {
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+
+      if (e.code === "Space" || e.key === "ArrowRight") {
+        e.preventDefault();
+        if (autoplayRunning) return;
+        advance();
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        stopAutoplay();
+        retreat();
+      } else if (e.key.toLowerCase() === "f") {
+        e.preventDefault();
+        toggleFullscreen();
+      } else if (e.key.toLowerCase() === "r") {
+        e.preventDefault();
+        restartBtn?.click();
+      } else if (e.key === "Escape") {
+        if (document.fullscreenElement) {
+          e.preventDefault();
+          document.exitFullscreen?.();
+        } else {
+          e.preventDefault();
+          exitBtn?.click();
+        }
+      }
+    });
+
+    document.addEventListener("DOMContentLoaded", initialPass);
+    if (document.readyState !== "loading") {
+      initialPass();
+    }
+  }
+</script>

@@ -1,0 +1,629 @@
+---
+import type { HTMLAttributes } from "astro/types";
+import { Icon } from "astro-icon/components";
+
+interface Props extends HTMLAttributes<"video"> {
+  src: string;
+  /** Shown under the video when set. */
+  caption?: string;
+  /** Accessible description of the video content. */
+  alt?: string;
+  /** Fraction of the video visible before autoplay (0–1). */
+  threshold?: number;
+  /** Restart from the beginning each time the video enters the viewport. */
+  restartOnEnter?: boolean;
+  /** Show mute toggle and volume slider (default playback stays muted). */
+  audioControls?: boolean;
+  /** Initial volume when unmuted (0–1). */
+  defaultVolume?: number;
+}
+
+const {
+  src,
+  caption,
+  alt = "Video illustration",
+  threshold = 0.35,
+  restartOnEnter = false,
+  audioControls = false,
+  defaultVolume = 1,
+  loop = true,
+  muted = true,
+  playsinline = true,
+  preload = "metadata",
+  class: className,
+  ...videoProps
+} = Astro.props;
+---
+
+<figure class:list={["scroll-video not-prose my-10", className]}>
+  <div class="scroll-video__breakout w-full" data-scroll-video-breakout>
+  <div
+    class="scroll-video__frame group relative overflow-hidden rounded-xl border border-teal-200/90 bg-zinc-950 shadow-md ring-1 ring-teal-500/15 transition-shadow duration-300 dark:border-emerald-500/35 dark:ring-emerald-500/25 [.scroll-video--playing_&]:shadow-lg [.scroll-video--playing_&]:ring-teal-500/30 dark:[.scroll-video--playing_&]:ring-emerald-500/40"
+  >
+    <video
+      data-scroll-video
+      data-scroll-threshold={threshold}
+      data-scroll-restart={restartOnEnter ? "true" : "false"}
+      data-scroll-audio={audioControls ? "true" : "false"}
+      data-scroll-default-volume={defaultVolume}
+      class="block aspect-video h-auto w-full"
+      src={src}
+      aria-label={alt}
+      loop={loop}
+      muted={muted}
+      playsinline={playsinline}
+      preload={preload}
+      {...videoProps}></video>
+    <button
+      type="button"
+      class="scroll-video__control absolute inset-0 z-10 flex cursor-pointer items-center justify-center border-0 bg-black/35 p-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100 focus-visible:opacity-100"
+      aria-label="Pause video"
+      data-scroll-video-toggle
+    >
+      <span
+        class="scroll-video__icon scroll-video__icon--pause flex h-16 w-16 items-center justify-center rounded-full bg-white/95 text-zinc-900 shadow-lg"
+        data-scroll-video-icon="pause"
+        aria-hidden="true"
+      >
+        <Icon class="h-9 w-9" name="ri:pause-fill" />
+      </span>
+      <span
+        class="scroll-video__icon scroll-video__icon--play hidden h-16 w-16 items-center justify-center rounded-full bg-white/95 text-zinc-900 shadow-lg"
+        data-scroll-video-icon="play"
+        aria-hidden="true"
+      >
+        <Icon class="h-9 w-9 pl-0.5" name="ri:play-fill" />
+      </span>
+    </button>
+    <div
+      class="scroll-video__chrome pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/80 via-black/45 to-transparent pt-10 pb-2"
+    >
+      <div
+        class="scroll-video__toolbar pointer-events-auto mx-2.5 mb-2 flex items-center justify-between gap-2"
+      >
+        {
+          audioControls && (
+            <div class="scroll-video__audio flex min-w-0 items-center gap-1.5 rounded-md bg-black/55 px-2 py-1 shadow-sm backdrop-blur-sm">
+              <button
+                type="button"
+                class="scroll-video__action scroll-video__action--mute inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent text-white transition hover:bg-white/15 focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:outline-none"
+                aria-label="Unmute video"
+                data-scroll-video-mute
+              >
+                <Icon
+                  class="scroll-video__mute-on hidden h-4 w-4"
+                  name="ri:volume-up-line"
+                  data-scroll-video-mute-icon="on"
+                />
+                <Icon
+                  class="scroll-video__mute-off h-4 w-4"
+                  name="ri:volume-mute-line"
+                  data-scroll-video-mute-icon="off"
+                />
+              </button>
+              <label class="sr-only" for={`scroll-video-volume-${src}`}>
+                Video volume
+              </label>
+              <input
+                id={`scroll-video-volume-${src}`}
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value={defaultVolume}
+                class="scroll-video__volume h-1.5 w-20 min-w-14 max-w-28 cursor-pointer accent-white sm:w-28"
+                aria-label="Video volume"
+                data-scroll-video-volume
+              />
+            </div>
+          )
+        }
+        <div class="scroll-video__layout-actions ml-auto flex shrink-0 gap-1.5">
+          <button
+            type="button"
+            class="scroll-video__action scroll-video__action--wide inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border-0 bg-black/55 text-white shadow-sm backdrop-blur-sm transition hover:bg-black/75 focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:outline-none"
+            aria-label="Expand to wide layout"
+            aria-pressed="false"
+            data-scroll-video-wide
+          >
+            <Icon
+              class="scroll-video__wide-expand h-4 w-4"
+              name="ri:aspect-ratio-line"
+              data-scroll-video-wide-icon="expand"
+            />
+            <Icon
+              class="scroll-video__wide-collapse hidden h-4 w-4"
+              name="ri:collapse-diagonal-line"
+              data-scroll-video-wide-icon="collapse"
+            />
+          </button>
+          <button
+            type="button"
+            class="scroll-video__action inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border-0 bg-black/55 text-white shadow-sm backdrop-blur-sm transition hover:bg-black/75 focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:outline-none"
+            aria-label="Enter fullscreen"
+            data-scroll-video-fullscreen
+          >
+            <Icon
+              class="scroll-video__fs-enter h-4 w-4"
+              name="ri:fullscreen-line"
+              data-scroll-video-fs-icon="enter"
+            />
+            <Icon
+              class="scroll-video__fs-exit hidden h-4 w-4"
+              name="ri:fullscreen-exit-line"
+              data-scroll-video-fs-icon="exit"
+            />
+          </button>
+        </div>
+      </div>
+      <div
+        class="scroll-video__progress-row pointer-events-auto flex items-center gap-2 px-2.5"
+      >
+        <span
+          class="scroll-video__time shrink-0 text-xs font-medium text-white/90 tabular-nums"
+          data-scroll-video-time-current>0:00</span
+        >
+        <div
+          class="scroll-video__progress-track relative min-w-0 flex-1 cursor-pointer touch-none py-2"
+          role="slider"
+          aria-label="Video progress"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-valuenow="0"
+          tabindex="0"
+          data-scroll-video-progress-track
+        >
+          <div
+            class="scroll-video__progress-rail relative h-1 overflow-hidden rounded-full bg-white/25 transition-[height] duration-150 group-hover:h-1.5 [.scroll-video__frame:fullscreen_&]:h-1.5"
+          >
+            <div
+              class="scroll-video__progress-fill absolute top-0 left-0 h-full rounded-full bg-teal-400 transition-[width] duration-75"
+              data-scroll-video-progress-fill
+              style="width: 0%"
+            >
+            </div>
+          </div>
+          <div
+            class="scroll-video__progress-thumb pointer-events-none absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white opacity-0 shadow-md ring-2 ring-teal-400/80 transition-opacity duration-150 group-hover:opacity-100 [.scroll-video__frame:fullscreen_&]:opacity-100 [.scroll-video--scrubbing_&]:opacity-100"
+            data-scroll-video-progress-thumb
+            style="left: 0%"
+          >
+          </div>
+        </div>
+        <span
+          class="scroll-video__time shrink-0 text-xs font-medium text-white/90 tabular-nums"
+          data-scroll-video-time-duration>0:00</span
+        >
+      </div>
+    </div>
+  </div>
+  {
+    caption && (
+      <figcaption class="scroll-video__caption mt-3 px-1 text-center text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+        {caption}
+      </figcaption>
+    )
+  }
+  </div>
+</figure>
+
+<style is:global>
+  /* Override Tailwind `w-full`: negative margins only widen when width is auto. */
+  .scroll-video__breakout.is-wide-layout {
+    width: auto !important;
+    max-width: min(var(--maximum-wide-width), calc(100cqw - 2 * var(--minimum-inline-margin)));
+    margin-left: calc(
+      max(var(--minimum-inline-margin), (100cqw - var(--maximum-wide-width)) / 2) -
+        var(--actual-inline-margin)
+    );
+    margin-right: calc(
+      max(var(--minimum-inline-margin), (100cqw - var(--maximum-wide-width)) / 2) -
+        var(--actual-inline-margin)
+    );
+  }
+
+  .scroll-video.scroll-video--wide .scroll-video__action--wide {
+    background-color: rgb(255 255 255 / 0.92);
+    color: #0f766e;
+  }
+
+  .scroll-video__frame:fullscreen {
+    border-radius: 0;
+    border-width: 0;
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #09090b;
+  }
+  .scroll-video__frame:fullscreen video {
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+  .scroll-video__frame:fullscreen .scroll-video__chrome {
+    padding-bottom: 1rem;
+    padding-top: 3rem;
+  }
+
+  .scroll-video__progress-track:focus-visible .scroll-video__progress-rail {
+    outline: 2px solid rgb(255 255 255 / 0.8);
+    outline-offset: 2px;
+  }
+
+  .scroll-video.scroll-video--scrubbing .scroll-video__progress-rail {
+    height: 0.375rem;
+  }
+
+  .scroll-video__volume {
+    appearance: none;
+    background: rgb(255 255 255 / 0.35);
+    border-radius: 9999px;
+  }
+
+  .scroll-video__volume::-webkit-slider-thumb {
+    appearance: none;
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 9999px;
+    background: white;
+    cursor: pointer;
+  }
+
+  .scroll-video__volume::-moz-range-thumb {
+    width: 0.75rem;
+    height: 0.75rem;
+    border: 0;
+    border-radius: 9999px;
+    background: white;
+    cursor: pointer;
+  }
+</style>
+
+<script>
+  const observers = new WeakMap<HTMLVideoElement, IntersectionObserver>();
+
+  function syncScrollVideoUi(video: HTMLVideoElement) {
+    const frame = video.closest(".scroll-video__frame");
+    const toggle = frame?.querySelector<HTMLButtonElement>("[data-scroll-video-toggle]");
+    const pauseIcon = frame?.querySelector('[data-scroll-video-icon="pause"]');
+    const playIcon = frame?.querySelector('[data-scroll-video-icon="play"]');
+    const paused = video.paused;
+
+    pauseIcon?.classList.toggle("hidden", paused);
+    pauseIcon?.classList.toggle("flex", !paused);
+    playIcon?.classList.toggle("hidden", !paused);
+    playIcon?.classList.toggle("flex", paused);
+    toggle?.setAttribute("aria-label", paused ? "Play video" : "Pause video");
+  }
+
+  function syncWideUi(figure: HTMLElement | null) {
+    if (!figure) return;
+    const isWide = figure
+      .querySelector("[data-scroll-video-breakout]")
+      ?.classList.contains("is-wide-layout");
+    const expandIcon = figure.querySelector('[data-scroll-video-wide-icon="expand"]');
+    const collapseIcon = figure.querySelector('[data-scroll-video-wide-icon="collapse"]');
+    const wideBtn = figure.querySelector<HTMLButtonElement>("[data-scroll-video-wide]");
+
+    expandIcon?.classList.toggle("hidden", isWide);
+    collapseIcon?.classList.toggle("hidden", !isWide);
+    wideBtn?.setAttribute("aria-pressed", String(isWide));
+    wideBtn?.setAttribute(
+      "aria-label",
+      isWide ? "Return to normal width" : "Expand to wide layout",
+    );
+  }
+
+  function syncFullscreenUi(frame: HTMLElement | null) {
+    if (!frame) return;
+    const isFullscreen = document.fullscreenElement === frame;
+    const enterIcon = frame.querySelector('[data-scroll-video-fs-icon="enter"]');
+    const exitIcon = frame.querySelector('[data-scroll-video-fs-icon="exit"]');
+    const fsBtn = frame.querySelector<HTMLButtonElement>("[data-scroll-video-fullscreen]");
+
+    enterIcon?.classList.toggle("hidden", isFullscreen);
+    exitIcon?.classList.toggle("hidden", !isFullscreen);
+    fsBtn?.setAttribute("aria-label", isFullscreen ? "Exit fullscreen" : "Enter fullscreen");
+  }
+
+  function formatVideoTime(seconds: number): string {
+    if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
+    const total = Math.floor(seconds);
+    const minutes = Math.floor(total / 60);
+    const secs = total % 60;
+    return `${minutes}:${secs.toString().padStart(2, "0")}`;
+  }
+
+  function syncProgressUi(video: HTMLVideoElement) {
+    const frame = video.closest<HTMLElement>(".scroll-video__frame");
+    const fill = frame?.querySelector<HTMLElement>("[data-scroll-video-progress-fill]");
+    const thumb = frame?.querySelector<HTMLElement>("[data-scroll-video-progress-thumb]");
+    const track = frame?.querySelector<HTMLElement>("[data-scroll-video-progress-track]");
+    const currentEl = frame?.querySelector<HTMLElement>("[data-scroll-video-time-current]");
+    const durationEl = frame?.querySelector<HTMLElement>("[data-scroll-video-time-duration]");
+
+    const duration = video.duration;
+    const current = video.currentTime;
+    const hasDuration = Number.isFinite(duration) && duration > 0;
+    const ratio = hasDuration ? Math.min(1, Math.max(0, current / duration)) : 0;
+    const percent = ratio * 100;
+
+    fill?.style.setProperty("width", `${percent}%`);
+    thumb?.style.setProperty("left", `${percent}%`);
+    track?.setAttribute("aria-valuenow", String(Math.round(percent)));
+    track?.setAttribute("aria-valuetext", `${formatVideoTime(current)} of ${formatVideoTime(duration)}`);
+
+    if (currentEl) currentEl.textContent = formatVideoTime(current);
+    if (durationEl) durationEl.textContent = formatVideoTime(duration);
+  }
+
+  function seekVideoFromClientX(
+    video: HTMLVideoElement,
+    track: HTMLElement,
+    clientX: number,
+  ) {
+    const duration = video.duration;
+    if (!Number.isFinite(duration) || duration <= 0) return;
+
+    const rect = track.getBoundingClientRect();
+    if (rect.width <= 0) return;
+
+    const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+    video.currentTime = ratio * duration;
+    syncProgressUi(video);
+  }
+
+  function initScrollVideoProgress(video: HTMLVideoElement) {
+    const figure = video.closest<HTMLElement>(".scroll-video");
+    const frame = video.closest<HTMLElement>(".scroll-video__frame");
+    const track = frame?.querySelector<HTMLElement>("[data-scroll-video-progress-track]");
+    if (!track) return;
+
+    let dragging = false;
+
+    const startScrub = (event: PointerEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      dragging = true;
+      video.dataset.userSeeking = "true";
+      figure?.classList.add("scroll-video--scrubbing");
+      track.setPointerCapture(event.pointerId);
+      seekVideoFromClientX(video, track, event.clientX);
+    };
+
+    const moveScrub = (event: PointerEvent) => {
+      if (!dragging) return;
+      event.preventDefault();
+      event.stopPropagation();
+      seekVideoFromClientX(video, track, event.clientX);
+    };
+
+    const endScrub = (event: PointerEvent) => {
+      if (!dragging) return;
+      dragging = false;
+      delete video.dataset.userSeeking;
+      figure?.classList.remove("scroll-video--scrubbing");
+      if (track.hasPointerCapture(event.pointerId)) {
+        track.releasePointerCapture(event.pointerId);
+      }
+    };
+
+    track.addEventListener("pointerdown", startScrub);
+    track.addEventListener("pointermove", moveScrub);
+    track.addEventListener("pointerup", endScrub);
+    track.addEventListener("pointercancel", endScrub);
+
+    track.addEventListener("keydown", (event) => {
+      const duration = video.duration;
+      if (!Number.isFinite(duration) || duration <= 0) return;
+
+      const step = event.shiftKey ? 10 : 5;
+      let nextTime = video.currentTime;
+
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        nextTime = Math.min(duration, video.currentTime + step);
+      } else if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        nextTime = Math.max(0, video.currentTime - step);
+      } else if (event.key === "Home") {
+        event.preventDefault();
+        nextTime = 0;
+      } else if (event.key === "End") {
+        event.preventDefault();
+        nextTime = duration;
+      } else {
+        return;
+      }
+
+      video.currentTime = nextTime;
+      syncProgressUi(video);
+    });
+
+    video.addEventListener("timeupdate", () => {
+      if (video.dataset.userSeeking === "true") return;
+      syncProgressUi(video);
+    });
+    video.addEventListener("loadedmetadata", () => syncProgressUi(video));
+    video.addEventListener("durationchange", () => syncProgressUi(video));
+    video.addEventListener("seeked", () => syncProgressUi(video));
+
+    syncProgressUi(video);
+  }
+
+  function syncAudioUi(video: HTMLVideoElement) {
+    if (video.dataset.scrollAudio !== "true") return;
+
+    const frame = video.closest<HTMLElement>(".scroll-video__frame");
+    const muteBtn = frame?.querySelector<HTMLButtonElement>("[data-scroll-video-mute]");
+    const volumeInput = frame?.querySelector<HTMLInputElement>("[data-scroll-video-volume]");
+    const muteOnIcon = frame?.querySelector('[data-scroll-video-mute-icon="on"]');
+    const muteOffIcon = frame?.querySelector('[data-scroll-video-mute-icon="off"]');
+
+    const isMuted = video.muted || video.volume === 0;
+
+    muteOnIcon?.classList.toggle("hidden", isMuted);
+    muteOffIcon?.classList.toggle("hidden", !isMuted);
+    muteBtn?.setAttribute("aria-label", isMuted ? "Unmute video" : "Mute video");
+    if (volumeInput) {
+      volumeInput.value = String(isMuted && video.volume === 0 ? 0 : video.volume);
+    }
+  }
+
+  function initScrollVideoAudio(video: HTMLVideoElement) {
+    if (video.dataset.scrollAudio !== "true") return;
+
+    const frame = video.closest<HTMLElement>(".scroll-video__frame");
+    const muteBtn = frame?.querySelector<HTMLButtonElement>("[data-scroll-video-mute]");
+    const volumeInput = frame?.querySelector<HTMLInputElement>("[data-scroll-video-volume]");
+    const defaultVolume = Number(video.dataset.scrollDefaultVolume ?? "1");
+
+    video.volume = defaultVolume;
+    video.muted = true;
+
+    muteBtn?.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (video.muted || video.volume === 0) {
+        video.muted = false;
+        if (video.volume === 0) {
+          video.volume = defaultVolume;
+        }
+      } else {
+        video.muted = true;
+      }
+
+      syncAudioUi(video);
+    });
+
+    volumeInput?.addEventListener("input", (event) => {
+      event.stopPropagation();
+
+      const nextVolume = Number(volumeInput.value);
+      video.volume = nextVolume;
+
+      if (nextVolume === 0) {
+        video.muted = true;
+      } else {
+        video.muted = false;
+      }
+
+      syncAudioUi(video);
+    });
+
+    volumeInput?.addEventListener("click", (event) => {
+      event.stopPropagation();
+    });
+
+    syncAudioUi(video);
+  }
+
+  function initScrollVideos() {
+    document.querySelectorAll<HTMLVideoElement>("[data-scroll-video]").forEach((video) => {
+      const figure = video.closest<HTMLElement>(".scroll-video");
+      if (figure?.dataset.scrollVideoInit === "true") return;
+      figure?.setAttribute("data-scroll-video-init", "true");
+
+      const frame = video.closest<HTMLElement>(".scroll-video__frame");
+      const toggle = frame?.querySelector<HTMLButtonElement>("[data-scroll-video-toggle]");
+      const wideBtn = figure?.querySelector<HTMLButtonElement>("[data-scroll-video-wide]");
+      const fsBtn = frame?.querySelector<HTMLButtonElement>("[data-scroll-video-fullscreen]");
+
+      syncScrollVideoUi(video);
+      syncWideUi(figure);
+      syncFullscreenUi(frame);
+      initScrollVideoAudio(video);
+      initScrollVideoProgress(video);
+
+      toggle?.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (video.paused) {
+          delete video.dataset.userPaused;
+          void video.play().then(() => {
+            figure?.classList.add("scroll-video--playing");
+            syncScrollVideoUi(video);
+          });
+        } else {
+          video.dataset.userPaused = "true";
+          video.pause();
+          figure?.classList.remove("scroll-video--playing");
+          syncScrollVideoUi(video);
+        }
+      });
+
+      const breakout = figure?.querySelector<HTMLElement>("[data-scroll-video-breakout]");
+
+      wideBtn?.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        figure?.classList.toggle("scroll-video--wide");
+        breakout?.classList.toggle("is-wide-layout");
+        syncWideUi(figure);
+      });
+
+      fsBtn?.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (!frame) return;
+
+        if (document.fullscreenElement === frame) {
+          void document.exitFullscreen();
+        } else {
+          void frame.requestFullscreen();
+        }
+      });
+
+      document.addEventListener("fullscreenchange", () => {
+        syncFullscreenUi(frame);
+      });
+
+      video.addEventListener("play", () => syncScrollVideoUi(video));
+      video.addEventListener("pause", () => syncScrollVideoUi(video));
+
+      if (observers.has(video)) return;
+
+      const threshold = Number(video.dataset.scrollThreshold ?? "0.35");
+      const restartOnEnter = video.dataset.scrollRestart !== "false";
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (entry.target !== video) continue;
+
+            if (entry.isIntersecting && entry.intersectionRatio >= threshold) {
+              if (restartOnEnter) {
+                try {
+                  video.currentTime = 0;
+                } catch {
+                  /* ignore seek errors before metadata */
+                }
+              }
+              if (video.dataset.userPaused !== "true") {
+                figure?.classList.add("scroll-video--playing");
+                void video.play().catch(() => {
+                  figure?.classList.remove("scroll-video--playing");
+                });
+              }
+            } else {
+              video.pause();
+              figure?.classList.remove("scroll-video--playing");
+            }
+          }
+        },
+        { threshold: [0, threshold, 1] },
+      );
+
+      observer.observe(video);
+      observers.set(video, observer);
+    });
+  }
+
+  initScrollVideos();
+</script>

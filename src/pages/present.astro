@@ -1,0 +1,70 @@
+---
+/**
+ * Dedicated presentation deck at /present/
+ * Content: src/presentation.mdx (separate from src/paper.mdx)
+ */
+import { Font } from "astro:assets";
+
+import Table from "../components/Table.astro";
+import PresentationController from "../components/presentation/PresentationController.astro";
+
+import "../styles/global.css";
+import "../styles/presentation.css";
+import "katex/dist/katex-swap.css";
+
+import { Content, frontmatter } from "../presentation.mdx";
+
+const { theme = "light", favicon = "flag2.svg", title = "Presentation" } =
+  frontmatter as {
+    theme?: "device" | "light" | "dark";
+    favicon?: string;
+    title?: string;
+  };
+
+const baseUrl = import.meta.env.BASE_URL;
+const prefix = baseUrl.endsWith("/") ? baseUrl : baseUrl + "/";
+const titlePlain = String(title).replace(/\n+/g, " ");
+const projectUrl = `${prefix}`;
+---
+
+<!doctype html>
+<html class="bg-white dark:bg-zinc-900" lang="en" data-theme={theme} data-present-pending="true">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" type="image/svg+xml" href={prefix + favicon} />
+    <title>{titlePlain}</title>
+
+    <Font
+      cssVariable="--font-noto-sans"
+      preload={[{ subset: "latin", style: "normal" }]}
+    />
+
+    <script is:inline>
+      (() => {
+        try {
+          const theme = window.localStorage.getItem("flag-theme");
+          if (theme === "light" || theme === "dark") {
+            document.documentElement.dataset.theme = theme;
+          }
+        } catch {
+          return;
+        }
+      })();
+    </script>
+  </head>
+  <body
+    data-present="true"
+    class="prose prose-lg prose-zinc dark:prose-invert max-w-none overflow-hidden font-(family-name:--font-noto-sans)"
+  >
+    <main id="presentation-main">
+      <Content components={{ table: Table }} />
+    </main>
+    <p class="sr-only">
+      <a href={projectUrl}>Back to project page</a>
+    </p>
+    <PresentationController />
+  </body>
+</html>

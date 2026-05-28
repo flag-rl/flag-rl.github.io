@@ -1,0 +1,57 @@
+---
+/**
+ * A "slide" in the presentation. The controller walks through sections
+ * in document order: optionally scrolls to the section, reveals each
+ * <PresentationStep> inside, cycles tab groups, awaits video playback,
+ * then moves on.
+ *
+ *   <PresentationSection id="intro" scrollTo holdAfter={2000}>
+ *     <PresentationStep>...</PresentationStep>
+ *     <PresentationStep>...</PresentationStep>
+ *   </PresentationSection>
+ *
+ * Props:
+ *   id          — anchor (also used by the controller for logging)
+ *   scrollTo    — smooth-scroll the section into view (default true)
+ *   scrollOffset— px offset from the top when scrolling (default 80)
+ *   tabHold     — ms to pause on each tab when cycling (default 3000)
+ *   holdAfter   — ms to pause after the section finishes (default 1500)
+ *   skipInPresent — exclude this section from the auto-play (default false)
+ */
+
+interface Props {
+  id?: string;
+  scrollTo?: boolean;
+  scrollOffset?: number;
+  tabHold?: number;
+  holdAfter?: number;
+  skipInPresent?: boolean;
+  class?: string;
+}
+
+const {
+  id,
+  scrollTo = true,
+  scrollOffset = 80,
+  tabHold = 3000,
+  holdAfter = 1500,
+  skipInPresent = false,
+  class: className,
+} = Astro.props;
+---
+
+<section
+  id={id}
+  data-present-section
+  data-present-scroll={scrollTo ? "true" : "false"}
+  data-present-scroll-offset={String(scrollOffset)}
+  data-present-tab-hold={String(tabHold)}
+  data-present-hold-after={String(holdAfter)}
+  data-present-skip={skipInPresent ? "true" : undefined}
+  data-present-title={id}
+  class:list={["present-slide", className]}
+>
+  <div class="present-slide-inner">
+    <slot />
+  </div>
+</section>

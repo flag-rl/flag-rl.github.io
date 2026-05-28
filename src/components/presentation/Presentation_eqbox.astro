@@ -1,0 +1,25 @@
+---
+/**
+ * Slide-friendly equation block (presentation deck only).
+ * Larger label + math; no card chrome. Edit freely without affecting EqBox on the project page.
+ */
+interface Props {
+  label?: string;
+  class?: string;
+}
+
+const { label, class: className } = Astro.props;
+---
+
+<div class:list={["present-eqbox not-prose", className]}>
+  {
+    label && (
+      <p class="present-eqbox-label mb-2 text-lg font-semibold tracking-tight text-zinc-800 sm:text-xl dark:text-zinc-200">
+        {label}
+      </p>
+    )
+  }
+  <div class="present-eqbox-math overflow-x-auto text-zinc-900 dark:text-zinc-50">
+    <slot />
+  </div>
+</div>

@@ -1,0 +1,174 @@
+---
+/**
+ * PPT variant of QCard — deck-only styling and behavior.
+ * Uses .ppt-qcard* class names so the project page QCard stays untouched.
+ */
+interface Props {
+  number: string;
+  title: string;
+}
+
+const { number, title } = Astro.props;
+---
+
+<article
+  id={number}
+  data-present-tab-group="qcard"
+  class="ppt-qcard not-prose flex max-h-full min-h-0 w-full flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-md dark:border-zinc-600 dark:bg-zinc-900"
+>
+  <header
+    class="flex shrink-0 items-center gap-4 border-b border-zinc-200 px-6 py-4 dark:border-zinc-700"
+  >
+    <span
+      class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-teal-700 text-sm font-bold text-white"
+      >{number}</span
+    >
+    <h2 class="flex-1 text-base font-semibold leading-snug text-zinc-900 md:text-lg dark:text-zinc-100">
+      {title}
+    </h2>
+  </header>
+
+  <div class="flex min-h-0 flex-1 flex-col overflow-hidden px-6 py-4">
+    <div
+      class="ppt-qcard-tabs relative mb-4 inline-flex shrink-0 rounded-full bg-zinc-200/80 p-1 dark:bg-zinc-700/80"
+      style="width: fit-content; margin-left: auto; margin-right: auto;"
+    >
+      <div
+        class="ppt-qcard-slider pointer-events-none absolute bottom-1 left-1 top-1 rounded-full bg-white shadow-sm transition-transform duration-200 ease-in-out dark:bg-zinc-600"
+        style="width: 0;"
+      ></div>
+
+      <button
+        type="button"
+        data-target="challenge"
+        class="ppt-qcard-tab relative z-10 flex items-center justify-center gap-1 rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-red-700 transition-colors dark:text-amber-300"
+        data-active="true"
+      >
+        <span class="dot inline-block h-1.5 w-1.5 rounded-full bg-red-400 dark:bg-amber-400"></span>
+        Challenge
+      </button>
+      <button
+        type="button"
+        data-target="solution"
+        class="ppt-qcard-tab relative z-10 flex items-center justify-center gap-1 rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-500 transition-colors dark:text-zinc-400"
+        data-active="false"
+      >
+        <span class="dot inline-block h-1.5 w-1.5 rounded-full bg-zinc-400 dark:bg-zinc-500"></span>
+        Solution
+      </button>
+      <button
+        type="button"
+        data-target="bottom-line"
+        class="ppt-qcard-tab relative z-10 flex items-center justify-center gap-1 rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-500 transition-colors dark:text-zinc-400"
+        data-active="false"
+      >
+        <span class="dot inline-block h-1.5 w-1.5 rounded-full bg-zinc-400 dark:bg-zinc-500"></span>
+        Bottom Line
+      </button>
+    </div>
+
+    <div class="min-h-0 flex-1 overflow-y-auto">
+      <div
+        data-panel="challenge"
+        class="ppt-qcard-panel rounded-xl border border-red-200 bg-red-50 p-4 dark:border-amber-500/50 dark:bg-amber-900/40"
+      >
+        <div class="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-red-700 dark:text-amber-300">
+          <span class="inline-block h-2 w-2 rounded-full bg-red-400 dark:bg-amber-400"></span>
+          Challenge
+        </div>
+        <div class="text-sm leading-relaxed text-zinc-800 md:text-base dark:text-zinc-200 [&_p]:my-1 [&_ul]:my-1 [&_ul]:list-disc [&_ul]:pl-5 [&_li]:my-0.5">
+          <slot name="challenge" />
+        </div>
+      </div>
+
+      <div
+        data-panel="solution"
+        class="ppt-qcard-panel hidden rounded-xl border border-blue-200 bg-blue-50 p-4 dark:border-sky-400/60 dark:bg-sky-800/50"
+      >
+        <div class="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-sky-200">
+          <span class="inline-block h-2 w-2 rounded-full bg-blue-400 dark:bg-sky-400"></span>
+          Solution
+        </div>
+        <div class="text-sm leading-relaxed text-zinc-800 md:text-base dark:text-zinc-200 [&_p]:my-1 [&_ul]:my-1 [&_ul]:list-disc [&_ul]:pl-5 [&_li]:my-0.5">
+          <slot name="solution" />
+        </div>
+      </div>
+
+      <div
+        data-panel="bottom-line"
+        class="ppt-qcard-panel hidden rounded-xl border border-teal-200 bg-teal-50 p-4 dark:border-emerald-500/50 dark:bg-emerald-900/40"
+      >
+        <div class="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-teal-700 dark:text-emerald-300">
+          <span class="inline-block h-2 w-2 rounded-full bg-teal-500 dark:bg-emerald-400"></span>
+          Bottom Line
+        </div>
+        <div class="text-sm leading-relaxed text-zinc-800 md:text-base dark:text-zinc-200 [&_p]:my-1 [&_ul]:my-1 [&_ul]:list-disc [&_ul]:pl-5 [&_li]:my-0.5">
+          <slot name="bottom-line" />
+        </div>
+      </div>
+    </div>
+  </div>
+</article>
+
+<script>
+  type Key = "challenge" | "solution" | "bottom-line";
+
+  const ACTIVE_TEXT: Record<Key, string> = {
+    challenge: "text-red-700 dark:text-amber-300",
+    solution: "text-blue-700 dark:text-sky-200",
+    "bottom-line": "text-teal-700 dark:text-emerald-300",
+  };
+
+  const ACTIVE_DOT: Record<Key, string> = {
+    challenge: "bg-red-400 dark:bg-amber-400",
+    solution: "bg-blue-400 dark:bg-sky-300",
+    "bottom-line": "bg-teal-500 dark:bg-emerald-400",
+  };
+
+  const INACTIVE_TEXT = "text-zinc-500 dark:text-zinc-400";
+  const INACTIVE_DOT = "bg-zinc-400 dark:bg-zinc-500";
+
+  const TAB_BASE =
+    "ppt-qcard-tab relative z-10 flex items-center justify-center gap-1 rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors duration-150 ";
+
+  function moveSlider(slider: HTMLElement, tab: HTMLButtonElement) {
+    slider.style.width = `${tab.offsetWidth}px`;
+    slider.style.transform = `translateX(${tab.offsetLeft - 4}px)`;
+  }
+
+  document.querySelectorAll<HTMLElement>(".ppt-qcard").forEach((card) => {
+    const tabs = card.querySelectorAll<HTMLButtonElement>(".ppt-qcard-tab");
+    const panels = card.querySelectorAll<HTMLElement>(".ppt-qcard-panel");
+    const slider = card.querySelector<HTMLElement>(".ppt-qcard-slider");
+
+    const firstActive = card.querySelector<HTMLButtonElement>(
+      ".ppt-qcard-tab[data-active='true']",
+    );
+    if (slider && firstActive) moveSlider(slider, firstActive);
+
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", (e) => {
+        e.preventDefault();
+        const target = tab.dataset.target as Key;
+        if (slider) moveSlider(slider, tab);
+
+        tabs.forEach((t) => {
+          const key = t.dataset.target as Key;
+          const isActive = t === tab;
+          t.className = TAB_BASE + (isActive ? ACTIVE_TEXT[key] : INACTIVE_TEXT);
+          const dot = t.querySelector<HTMLElement>(".dot");
+          if (dot) {
+            dot.className =
+              "dot inline-block h-1.5 w-1.5 rounded-full " +
+              (isActive ? ACTIVE_DOT[key] : INACTIVE_DOT);
+          }
+        });
+
+        panels.forEach((p) => {
+          if (p.dataset.panel === target) p.classList.remove("hidden");
+          else p.classList.add("hidden");
+        });
+      });
+    });
+  });
+</script>

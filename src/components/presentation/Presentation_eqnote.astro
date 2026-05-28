@@ -1,0 +1,37 @@
+---
+/**
+ * Left-aligned annotation under a presentation equation (e.g. BPTT callout).
+ * Minimal styling — no bordered boxes.
+ */
+interface Props {
+  tag?: string;
+  tagTone?: "red" | "teal";
+  class?: string;
+}
+
+const { tag, tagTone = "red", class: className } = Astro.props;
+
+const tagClasses: Record<NonNullable<Props["tagTone"]>, string> = {
+  red: "text-red-600 dark:text-red-400",
+  teal: "text-teal-700 dark:text-teal-400",
+};
+---
+
+<div
+  class:list={[
+    "present-eqnote not-prose mt-3 text-left text-base leading-relaxed text-zinc-600 sm:text-lg dark:text-zinc-400",
+    className,
+  ]}
+>
+  {
+    tag ? (
+      <>
+        <span class:list={["font-bold", tagClasses[tagTone]]}>{tag}</span>
+        <span class="mx-2 text-zinc-300 dark:text-zinc-600">·</span>
+      </>
+    ) : null
+  }
+  <span class="present-eqnote-content">
+    <slot />
+  </span>
+</div>

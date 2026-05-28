@@ -1,0 +1,52 @@
+---
+/**
+ * PPT variant of ResultQCard — always expanded, slide-friendly layout.
+ */
+interface Props {
+  number: string;
+  question: string;
+  answer: string;
+}
+
+const { number, question, answer } = Astro.props;
+const answerLabel = number.replace("Q", "A");
+---
+
+<article
+  id={`ppt-result-${number}`}
+  class="ppt-result-qcard not-prose flex max-h-full min-h-0 w-full flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-md dark:border-zinc-600 dark:bg-zinc-900"
+>
+  <header
+    class="flex shrink-0 items-center gap-4 border-b border-zinc-200 px-6 py-4 dark:border-zinc-700"
+  >
+    <span
+      class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-teal-700 text-sm font-bold text-white"
+      >{number}</span
+    >
+    <h2 class="flex-1 text-base font-semibold leading-snug text-zinc-900 md:text-lg dark:text-zinc-100">
+      {question}
+    </h2>
+  </header>
+
+  <div class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-4">
+    <div
+      class="shrink-0 rounded-xl border border-teal-200 bg-teal-50 p-4 dark:border-emerald-500/50 dark:bg-emerald-900/40"
+    >
+      <div class="flex items-center gap-3">
+        <span
+          class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-teal-600 text-xs font-bold text-white dark:bg-emerald-600"
+        >
+          {answerLabel}
+        </span>
+        <p class="text-base font-bold leading-snug text-zinc-900 md:text-lg dark:text-zinc-100">
+          {answer}
+        </p>
+      </div>
+      <slot name="answer-links" />
+    </div>
+
+    <div class="min-h-0 flex-1">
+      <slot />
+    </div>
+  </div>
+</article>
